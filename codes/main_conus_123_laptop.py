@@ -17,11 +17,10 @@ def analyze_cell_wrapper(arg):
 
 
 
-
 def typemat(value, nlons, nlats):
     '''return a numpy array of size nlons*nlats*np.size(value)
-       of the same type as value (int, bool or float)
-       if value is array, return that as the third dimension'''
+        of the same type as value (int, bool or float)
+        if value is array, return that as the third dimension'''
     nd = np.ndim(value)
     # print(nd)
     if nd >= 1:
@@ -58,10 +57,10 @@ lons = xconus.lon.values
 # Extreme value analysis for all gauges
 if cfun.do_evd_all_gauges:
     cfun.gauge_evd(cfun.Tr, cfun.gauges_dir,
-                   cfun.stat_list_file, cfun.outdir_data,
-                   nyears_min=cfun.pixelkwargs['min_nyears_pixel'],
-                   maxmiss=cfun.pixelkwargs['maxmiss'],
-                   thresh=cfun.pixelkwargs['thresh'])
+                    cfun.stat_list_file, cfun.outdir_data,
+                    nyears_min=cfun.pixelkwargs['min_nyears_pixel'],
+                    maxmiss=cfun.pixelkwargs['maxmiss'],
+                    thresh=cfun.pixelkwargs['thresh'])
 
 # TODO: add here TMPA EVD analysis over CONUS / WORLD
 
@@ -74,12 +73,11 @@ for ii in range(1, nlons-1):
         clon = lons[ii]
         clat = lats[jj]
         myargs = (ii, jj, clon, clat,
-                  cfun.Tr,
-                  cfun.stat_list_file,
-                  cfun.tmpa_hdf_file,
-                  cfun.gauges_dir)
+                    cfun.Tr,
+                    cfun.stat_list_file,
+                    cfun.tmpa_hdf_file,
+                    cfun.gauges_dir)
         INPUT.append((myargs, cfun.pixelkwargs))
-
 
 # p = Pool(processes=cfun.nprocesses)
 # RES = map(analyze_cell_wrapper, INPUT)
@@ -91,25 +89,21 @@ for iii, argi in enumerate(INPUT):
     print(iii)
     RES.append(analyze_cell_wrapper(argi))
 
-
 # RES = [analyze_cell_wrapper(argi) for argi in INPUT] # if not parallel
 
 ninput = len(INPUT)
 # save results in a single pandas data frame for stats analyses:
 dfres = pd.DataFrame(RES)
 to_drop = ['mev_s', 'mev_g', 'mev_d', 'mev_s_all', 'gev_s_all', 'Tr',
-           'NYs', 'NYd', 'CYs', 'CYd', 'WYs', 'WYd',
+            'NYs', 'NYd', 'CYs', 'CYd', 'WYs', 'WYd',
                                 'NYg', 'CYg', 'WYg'] # remove
-
 
 for elem in to_drop:
     if elem in dfres.columns:
         dfres.drop(elem, inplace=True, axis=1)
 
 dfres.to_csv(os.path.join(cfun.outdir_data,
-          'dfres_laptop_{}.csv'.format(ninput)))
-
-
+            'dfres_laptop_{}.csv'.format(ninput)))
 
 # # now save from list to dictionary of arrays - scalars only
 mydict = {key:typemat(value, nlons, nlats) for key, value in zip(
@@ -131,9 +125,9 @@ for item in RES:
 
 mycoords = ['lon', 'lat']
 dset = xr.Dataset({key:(mycoords, value) for key, value in
-              zip(mydict.keys(), mydict.values()) if np.ndim(value) == 2},
-              coords = {'lon':lons,
-                        'lat':lats})
+                zip(mydict.keys(), mydict.values()) if np.ndim(value) == 2},
+                coords = {'lon':lons,
+                            'lat':lats})
 
 # add dataset variables with 3 coordinates:
 # only return times for now
@@ -147,8 +141,8 @@ quant_vars = ['mev_s', 'mev_g', 'mev_d', 'mev_s_all', 'gev_s_all']
 for key, value in zip(mydict.keys(), mydict.values()):
     if np.ndim(value) == 3 and key in quant_vars:
         dset[key] = xr.DataArray(value,
-                                 coords = [lons, lats, cfun.Tr],
-                                 dims = ['lon', 'lat', 'TR'])
+                                    coords = [lons, lats, cfun.Tr],
+                                    dims = ['lon', 'lat', 'TR'])
 
 yearly_vars = ['NYs', 'NYd', 'CYs', 'CYd', 'WYs', 'WYd',
                                     'NYg', 'CYg', 'WYg'] # remove
@@ -157,13 +151,11 @@ for key, value in zip(mydict.keys(), mydict.values()):
     if np.ndim(value) == 3 and key in yearly_vars:
         nyears_tmpa = np.shape(value)[2]
         dset[key] = xr.DataArray(value,
-                     coords = [lons, lats, np.arange(nyears_tmpa)],
-                     dims = ['lon', 'lat', 'years'])
-
-
+                        coords = [lons, lats, np.arange(nyears_tmpa)],
+                        dims = ['lon', 'lat', 'years'])
 
 dset.to_netcdf( os.path.join(cfun.outdir_data,
-                     'ncres_laptop_{}.nc'.format(ninput)), mode='w')
+                        'ncres_laptop_{}.nc'.format(ninput)), mode='w')
 
 # with open(os.path.join(cfun.outdir_data, 'numberofjobs.txt'), 'w') as file1:
 #     file1.write(str(ninput))

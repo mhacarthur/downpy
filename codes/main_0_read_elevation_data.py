@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 
 dfs = pd.read_csv( os.path.join(cfun.list_gauges_dir, 'HOURLY_LOC_NYEARS.csv'),
-                   index_col = 0)
+                index_col = 0)
 plot_true = True
 
 
@@ -123,7 +123,7 @@ if plot_true:
     cs = m.contourf(xr, yr, Band1)
     m.drawlsmask(land_color=(0, 0, 0, 0), ocean_color='w', lakes=True)
     sc = m.scatter(dfs['LON'].values,dfs['LAT'].values, marker='o',
-                   c='red', s=1,  zorder=10 , latlon=True)
+                    c='red', s=1,  zorder=10 , latlon=True)
     cbar = m.colorbar(cs, location='bottom',pad="8%")
     cbar.set_label('Elevation [m MSL]')
     plt.title('Elevation',fontsize=12)

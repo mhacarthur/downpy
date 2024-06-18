@@ -242,7 +242,7 @@ if plot_true:
     meridians = np.arange(180.,360.,10.)
     m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10)
     ny = conus_vals.shape[0]; nx = conus_vals.shape[1]
-     #lonsp, latsp = m.makegrid(nx, ny) # get lat/lons of ny by nx evenly space grid.
+    #lonsp, latsp = m.makegrid(nx, ny) # get lat/lons of ny by nx evenly space grid.
     # maplon, maplat= np.meshgrid(boxlon, boxlat)
     maplat, maplon= np.meshgrid(boxlat, boxlon)
     x, y = m(maplon, maplat) # compute map proj coordinates.

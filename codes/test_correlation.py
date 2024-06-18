@@ -31,7 +31,7 @@ x = da.from_array(dset, chunks=(6, 6, 300))
 
 # UTC time
 dates = [datetime.strptime(str(integd)+str(inthour), '%Y%m%d%H')
-                 for integd, inthour in zip(dates_int, hours_int)]
+                    for integd, inthour in zip(dates_int, hours_int)]
 
 # create xarray
 xrs0 = xr.DataArray(x,  coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
@@ -39,8 +39,6 @@ xrs0 = xr.DataArray(x,  coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
 
 # set negative values to NaN (missing values)
 xrs = xrs0.where(xrs0 >= -0.001)
-
-
 
 # now extract a bounding box of interest:
 clat = 34.785
@@ -54,7 +52,6 @@ nolat = clat + buffer + eps
 ealon = clon + buffer + eps
 welon = clon - buffer - eps
 
-
 bcond = np.logical_and(
             np.logical_and( xrs.lat > solat, xrs.lat < nolat),
             np.logical_and( xrs.lon > welon, xrs.lon < ealon))
@@ -67,8 +64,6 @@ dx = 0.25
 tmax = 48
 # smax = 3
 
-
-
 # XARRAY WITH VALUES LOADED IN MEMORY
 box_3h = xrs.where(bcond, drop = True).load()
 
@@ -76,21 +71,13 @@ box_3h = xrs.where(bcond, drop = True).load()
 # and only then remove nans
 boxd0 = box_3h.resample(time ='D').sum(dim='time', skipna=False)
 
-
 boxd = boxd0.dropna(dim='time', how='any')
 
 # ts1 = boxd.loc[dict(lat = 34.875, lon = -98.125)]
 
 # downscaling:
 
-
-
 # compute correlation between gridded precipitation cells
-
-
-
-
-
 res = down.grid_corr(boxd0, plot=False)
 
 # res['fig'].show()
@@ -103,15 +90,12 @@ vcorr = res['vcorr']
 # res['epsilon']
 print(res)
 
-
-
-
 acftype = 'mar'
 init_time = time.time()
 # npoints = 5
 resdown = down.down_corr(vdist, vcorr, 25.3, acf=acftype,
-                         use_ave=True, opt_method = 'genetic',
-                         toll=0.005, plot=True, disp=True)
+                        use_ave=True, opt_method = 'genetic',
+                        toll=0.005, plot=True, disp=True)
 print(resdown)
 end_time = time.time()
 exec_time = end_time - init_time
@@ -125,16 +109,12 @@ print('exec_time = {} minutes'.format(exec_time/60))
 # resdown['eps_d'] = resdown.x[0]
 # resdown['alpha_d'] = resdown.x[1]
 
-
-
 # try to integrate bacl the downscaled correlation::
 
 resdown['fig'].show()
 
-
 xx = np.linspace(0.5, 100)
 corrL = down.int_corr(xx, (resdown['eps_d'], resdown['alp_d']), acftype, 25.3)
-
 
 # plt.figure()
 # plt.plot(xx, down.epl_fun(xx, res['eps_s'], res['alp_s']), 'r')
@@ -154,22 +134,9 @@ corrL = down.int_corr(xx, (resdown['eps_d'], resdown['alp_d']), acftype, 25.3)
 # plt.plot(xx, corrL, 'sc')
 # plt.show()
 
-
-#
 # def block_ave(x, window=1):
 #     xmin = np.min(x)
 #     xmax = np.max(x)
 
-
-
 # vdist_ave, vcorr_ave, vd, cd, cluster = block_ave(vdist, vcorr, toll = 0.2)
 # res = block_ave_corr(vdist, vcorr, toll = 0.2)
-
-
-
-
-
-
-
-
-

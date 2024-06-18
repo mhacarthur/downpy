@@ -74,7 +74,7 @@ with h5py.File( os.path.join(outdir, 'data_tmpa_3h.hdf5'), 'w') as f:
         prcpmat = prcpmat_rates*3 # accumulations
         if tt == 0:
             dset = f.create_dataset('prcp', (nblon, nblat, numfiles),
-                                       chunks = chnunkshape , dtype = 'f')
+                                        chunks = chnunkshape , dtype = 'f')
             dset[ :,:, tt] = prcpmat # save accumulations
 
             dset2 = f.create_dataset('lat', (nblat,), dtype = 'f')

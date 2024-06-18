@@ -34,10 +34,10 @@ if __name__ == '__main__':
     # Extreme value analysis for all gauges
     if cfun.do_evd_all_gauges:
         cfun.gauge_evd(cfun.Tr, cfun.gauges_dir,
-                       cfun.stat_list_file, cfun.outdir_data,
-                       nyears_min=cfun.pixelkwargs['min_nyears_pixel'],
-                       maxmiss=cfun.pixelkwargs['maxmiss'],
-                       thresh=cfun.pixelkwargs['thresh'])
+                    cfun.stat_list_file, cfun.outdir_data,
+                    nyears_min=cfun.pixelkwargs['min_nyears_pixel'],
+                    maxmiss=cfun.pixelkwargs['maxmiss'],
+                    thresh=cfun.pixelkwargs['thresh'])
 
     # TODO: add here TMPA EVD analysis over CONUS / WORLD
 
@@ -51,10 +51,10 @@ if __name__ == '__main__':
             clon = lons[ii]
             clat = lats[jj]
             myargs = (ii, jj, clon, clat,
-                      cfun.Tr,
-                      cfun.stat_list_file,
-                      cfun.tmpa_hdf_file,
-                      cfun.gauges_dir)
+                    cfun.Tr,
+                    cfun.stat_list_file,
+                    cfun.tmpa_hdf_file,
+                    cfun.gauges_dir)
             INPUT.append((myargs, cfun.pixelkwargs))
 
     if not os.path.exists(cfun.pickletemp):

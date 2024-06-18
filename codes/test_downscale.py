@@ -37,7 +37,7 @@ def extract_sample_data(inputfile, outputfile,
     x = da.from_array(dset, chunks=(6, 6, 300))
     # UTC time
     dates = [datetime.strptime(str(integd)+str(inthour), '%Y%m%d%H')
-                     for integd, inthour in zip(dates_int, hours_int)]
+                    for integd, inthour in zip(dates_int, hours_int)]
     # create xarray
     xrs0 = xr.DataArray(x,  coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
                                                     dims=('lon', 'lat', 'time'))
@@ -123,9 +123,9 @@ res = {}  # initialize dictionary for storing results
 print('Example: running the downscaling function')
 init_time = time.time()
 downres = down.downscale(box_3h, Tr, thresh=1.0, L0=0.0001, toll=0.005,
-                         acf='mar', save_yearly=True,
-                         maxmiss=36, clat=clat, clon=clon,
-                         opt_method='genetic', plot=True)
+                        acf='mar', save_yearly=True,
+                        maxmiss=36, clat=clat, clon=clon,
+                        opt_method='genetic', plot=True)
 end_time = time.time()
 exec_time = end_time - init_time
 print('Downscaling, execution time was = {} minutes'.format(exec_time/60))

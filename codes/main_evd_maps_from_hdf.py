@@ -54,8 +54,8 @@ x = da.from_array(dset, chunks=(6, 6, 300))
 # UTC time
 dates = [datetime.strptime(str(integd), '%Y%m%d') for integd in dates_int]
 xconus = xr.DataArray(x,
-      coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
-      dims=('lon', 'lat', 'time'))
+        coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
+        dims=('lon', 'lat', 'time'))
 xconus = xconus.where(xconus >= -0.001)
 ### end reading prcp dataset ###
 

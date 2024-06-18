@@ -49,8 +49,6 @@ outdir_hourly = os.path.join(output_dir, 'hourly_csv')
 if not os.path.exists(outdir_hourly):
         os.mkdir(outdir_hourly)
 
-   
-
 
 def download_noaa_hpd(output_dir, user_name):
     parent_url = 'ftp.ncdc.noaa.gov'
@@ -89,32 +87,31 @@ nfiles = len(files)
 
 # statmat = np.loadtxt(os.path.join(datadir, 'hpd-stations.txt'))
 hdp_stations = pd.read_csv( os.path.join(output_dir,
-             'hpd-stations.txt'), sep = ',', header = None, names = ['ALL'])
+            'hpd-stations.txt'), sep = ',', header = None, names = ['ALL'])
 
 fields =  {'ID':[1,11],
-           'LATITUDE':[13, 20],
-           'LONGITUDE':[22, 30],
-           'ELEVATION':[32, 37],
-           'STATE':[39, 40],
-           'NAME':[42, 122],
-           'WMO ID':[124, 128],
-           'NOMINAL SAMPLING INTERVAL':[130, 133],
-           'N HOURS OFFSET FROM GMT':[135, 139]}
+            'LATITUDE':[13, 20],
+            'LONGITUDE':[22, 30],
+            'ELEVATION':[32, 37],
+            'STATE':[39, 40],
+            'NAME':[42, 122],
+            'WMO ID':[124, 128],
+            'NOMINAL SAMPLING INTERVAL':[130, 133],
+            'N HOURS OFFSET FROM GMT':[135, 139]}
 
 
 for key in fields.keys():
     # indexing: remove 1 for python 0-based, add 1 to the end
     # point bc in would be excluded
     hdp_stations[key] = hdp_stations['ALL'].apply(lambda x:
-                                          x[fields[key][0]-1:fields[key][1]])
-
+                                        x[fields[key][0]-1:fields[key][1]])
 
 
 nstats = np.shape(hdp_stations)[0]
 
 mywidths = [11, 4, 2, 2, 4] + [5, 1, 1, 1, 1]*24
 mynames = ['STATION','YEAR', 'MONTH', 'DAY', 'ELEMENT'] +\
-          ['VALUE', 'MFLAG', 'QFLAG', 'SFLAG', 'S2FLAG']*24
+        ['VALUE', 'MFLAG', 'QFLAG', 'SFLAG', 'S2FLAG']*24
 # print(sum(mywidths))
 
 # write in a file the locations of the stations
@@ -122,7 +119,6 @@ mynames = ['STATION','YEAR', 'MONTH', 'DAY', 'ELEMENT'] +\
 hours24 = np.arange(0, 24)
 # nhours = np.size(hours24)
 bad_flags = ['X', 'N', 'Y', 'K', 'G', 'O', 'Z', 'A', 'M', 'D']
-
 
 nyears = np.zeros(nstats)
 start = np.zeros(nstats)
@@ -134,7 +130,7 @@ for ii in range(nstats):
     # read station
     # compute and save daily totals
     file_ii = os.path.join(output_dir, 'all',
-                           '{}.hly'.format(hdp_stations['ID'][ii]))
+                        '{}.hly'.format(hdp_stations['ID'][ii]))
     df  = pd.read_fwf(file_ii, widths=mywidths, header = None)
     df.columns = mynames
     # Hourly Precipitation Total (Hundredth of Inches)
@@ -150,8 +146,6 @@ for ii in range(nstats):
     ndays = np.shape(prcpmat)[0]
     daily_prcp = np.zeros(ndays)
 
-
-    
     for jj in range(ndays):
         sample = prcpmat[jj,:]
         flags =  qflagmat[jj, :]
@@ -178,22 +172,19 @@ for ii in range(nstats):
     outname_daily = os.path.join(outdir_daily, dailyname)
     ddf.to_csv( '{}.csv'.format(outname_daily))
 
-
-
     dates = np.repeat( daily_dates, 24)
     years_all = np.repeat( years, 24)
     hours = np.tile(hours24, ndays)
 
     # dictionary and data frame for the given time series}
     ts = pd.DataFrame({'DATE': dates, 'YEAR':years_all,
-                       'HOUR':hours, 'PRCP': prcpmat.flatten(),
-                       'QFLAG': qflagmat.flatten()})
+                    'HOUR':hours, 'PRCP': prcpmat.flatten(),
+                    'QFLAG': qflagmat.flatten()})
 
     # also save number of years for each station
     nyears[ii] = np.size(np.unique(years))
     start[ii] = ts['YEAR'].values[0]
     end[ii] = ts['YEAR'].values[-1]
-
 
     # write the extracted time series in csv files
     statname =hdp_stations['ID'][ii].replace('dly', 'csv')
@@ -210,7 +201,3 @@ sll_df['NYEARS'] = nyears
 sll_df['START'] = start
 sll_df['END'] = end
 sll_df.to_csv(os.path.join(output_dir, 'HOURLY_LOC_NYEARS.csv')) 
-    
-
-
-
