@@ -95,7 +95,7 @@ def matplotlib_update_settings():
 
 
 def haversine(lat1, lat2, lon1, lon2,
-              convert_to_rad=True):
+                convert_to_rad=True):
     '''compute haversine distance btw 2 points.
     by default provide angles in degrees.
     Return distance in km'''
@@ -112,8 +112,7 @@ def haversine(lat1, lat2, lon1, lon2,
     dlat = lat2 - lat1
     dlon = lon2 - lon1
     R = 6371.0 # km
-    a = np.sin(dlat/2)**2 + np.cos(lat1
-               )*np.cos(lat2)*np.sin(dlon/2)**2
+    a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
     dist = 2*R*np.arctan2( np.sqrt(a), np.sqrt(1-a))
     return dist
 
@@ -144,8 +143,8 @@ def area_lat_long(lat_c, lon_c, dlat, dlon):
 
 
 def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
-                   target_x=0.0001, target_t=24,
-                   origin_x=25, origin_t=24, ninterp=1000, plot=False):
+                    target_x=0.0001, target_t=24,
+                    origin_x=25, origin_t=24, ninterp=1000, plot=False):
     '''------------------------------------------------------------------------
     Use a Taylor hypothesis to trade space for time and give an estimate
     of the wet fraction above a certain threshold at a spatial scale smaller
@@ -153,11 +152,11 @@ def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
 
     INPUT:
         xdata: X-ARRAY with the precipitation ACCUMULATIONS at scale dt
-               must already be loaded in memory
-               negative values must be already removed and set to np.nan
-               has dimensions (lat, lon, time)
-               time step MUST BE between 0.5 and 3 HRS (IMERG / TMPA)
-               must be square (same dimension in x and y)
+                must already be loaded in memory
+                negative values must be already removed and set to np.nan
+                has dimensions (lat, lon, time)
+                time step MUST BE between 0.5 and 3 HRS (IMERG / TMPA)
+                must be square (same dimension in x and y)
                ***SEE FUNCTION CALLED BELOW FOR MORE INFORMATION***
 
         thresh: threshold for computing wet fraction (default 1 prcp unit)
@@ -171,10 +170,10 @@ def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
         plot=False: only True if you wanna see fancy plots
     OUTPUT:
         beta: ratio between pwet at the grid cell scale ()
-              to pwet at the target subgrid scale ()
+                to pwet at the target subgrid scale ()
 
     NOTE: TESTED ONLY WITH TRMM - TMPA - 3B42 - 3 hourly * 0.25 deg product!
-          FOR PRECIPITATION ACCUMULATION TARGETS AT THE DAILY SCALE
+            FOR PRECIPITATION ACCUMULATION TARGETS AT THE DAILY SCALE
     ------------------------------------------------------------------------'''
     pwets, xscales, tscales = compute_pwet_xr(xdata, thresh,
                                     cube1size=3, dt=dt, tmax=48)
@@ -192,35 +191,35 @@ def compute_pwet_xr(xray, thresh, *,
     different integration scales (in time) and averaging scales (space)
 
     INPUT:  xray: xarray with dimensions lat, lon, time
-                  (must be already loaded in memory,
-                  and missing values must be converted to np.nan in advance:
-                  here np.nan are propagated until the end when integrating.
-                  time step MUST BE between 0.5 and 3 HRS (IMERG / TMPA)
-                  Dimension in pixel of LAT and LON must be equal (square)
-                  and sufficiently long record in time to compute reliably.
+                    (must be already loaded in memory,
+                    and missing values must be converted to np.nan in advance:
+                    here np.nan are propagated until the end when integrating.
+                    time step MUST BE between 0.5 and 3 HRS (IMERG / TMPA)
+                    Dimension in pixel of LAT and LON must be equal (square)
+                    and sufficiently long record in time to compute reliably.
 
 
             thresh:  threshold for determining wet fraction
             cube1size = 1: lateral size of cube used to decide
-                       among how many single pixel average at smallest scale
+                        among how many single pixel average at smallest scale
             dt = 3: temporal resolution of observations [HOURS]
             tmax = 48: maximum time scale of integration [HOURS]
 
 
     OUTPUT: pwets: numpy array of shape tscales*xscales with the values
-                   of wet fraction at different time / space scales
+                    of wet fraction at different time / space scales
             xscales: spatial scales (dimensionless, relative to pixel size)
             tscales: temporal scales (in HOURS!)
 
     Note: at the smallest scale (xscale=1), values are computed for each
-          time series within a centered cube of size cube1size,
-          and then averaged.
+            time series within a centered cube of size cube1size,
+            and then averaged.
 
-          At the largest spatial scale, spatial average includes all the
-          pixels in the array
+            At the largest spatial scale, spatial average includes all the
+            pixels in the array
 
-          at intermediate scales, the wet fraction is computed for 4 boxes
-          starting at the 4 corners of the lattice, and averaged.
+            at intermediate scales, the wet fraction is computed for 4 boxes
+            starting at the 4 corners of the lattice, and averaged.
     -----------------------------------------------------------------------'''
 
     smax = xray.shape[0] # max spatial scale
@@ -271,35 +270,35 @@ def compute_pwet_xr(xray, thresh, *,
 
             elif sx == smax: # largest scale: simple average
                 pwets[it, ix] = wetfrac( datamat.mean(dim=('lat', 'lon'),
-                              skipna = False).dropna(dim='time', how='any'),
-                              thresh)
+                                skipna = False).dropna(dim='time', how='any'),
+                                thresh)
 
             else: # intermediate scales
                 c1 = np.zeros(4)
                 c1[0] = wetfrac(datamat[:sx, :sx, :].mean(dim=('lat', 'lon'),
-                               skipna=False).dropna(dim='time', how='any'),
+                                skipna=False).dropna(dim='time', how='any'),
                                 thresh)
                 c1[1] = wetfrac(datamat[-sx:, :sx, :].mean(dim=('lat', 'lon'),
-                               skipna=False).dropna(dim='time', how='any'),
+                                skipna=False).dropna(dim='time', how='any'),
                                 thresh)
                 c1[2] = wetfrac(datamat[:sx, :sx, :].mean(dim=('lat', 'lon'),
-                               skipna=False).dropna(dim='time', how='any'),
+                                skipna=False).dropna(dim='time', how='any'),
                                 thresh)
                 c1[3] = wetfrac(datamat[-sx:, :sx, :].mean(dim=('lat', 'lon'),
-                               skipna=False).dropna(dim='time', how='any'),
+                                skipna=False).dropna(dim='time', how='any'),
                                 thresh)
                 pwets[it, ix] = np.mean(c1)
     return pwets, xscales, tscales
 
 
 def Taylor_beta(pwets, xscales, tscales, *, L1=25,target_x=0.001, target_t=24,
-                      origin_x=25, origin_t=24, ninterp = 1000, plot=False):
+                    origin_x=25, origin_t=24, ninterp = 1000, plot=False):
     '''------------------------------------------------------------------
     Extrapolate the wet fraction of the rainfall fields at small scales
     smaller than the resolution of the gridded precipitation product.
     INPUT:
         pwets: array of wet fractions for different integration scales.
-               Must have shape tscales*xscales
+                Must have shape tscales*xscales
         xscales: array of spatial scales (DIMENSIONLESS, in pixel units!!!)
         tscales: array of temporal scales (DIMENSIONAL, in [HOURS])
         L1: pixel linear size, in [Km]
@@ -549,20 +548,20 @@ def grid_corr(xdata, plot=True, thresh=0):
     xx = np.linspace(np.min(vdist), np.max(vdist), 20)
     # fit curves to observed correlation
     popt, pcov = curve_fit(str_exp_fun, vdist, vcorr, p0=np.array([50, 1]),
-               bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
     res['d0_s']= popt[0]
     res['mu0_s'] = popt[1]
     popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr, p0=np.array([50, 1]),
-               bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
     res['eps_s'] = popt1[0]
     res['alp_s'] = popt1[1]
     if plot:
         fig = plt.figure()
         plt.plot(vdist, vcorr, 'o', label='empirical')
         plt.plot(xx, str_exp_fun(xx, res['d0_s'], res['mu0_s']), 'r',
-                                             label='Stretched exp.')
+                                            label='Stretched exp.')
         plt.plot(xx, epl_fun(xx, res['eps_s'], res['alp_s']), 'g',
-                                             label='Exp.-power law')
+                                            label='Exp.-power law')
         plt.xlabel('distance [Km]')
         plt.ylabel('correlation [-]')
         plt.ylim([0, 1])
@@ -633,7 +632,7 @@ def myfun_sse(xx, yobs, parhat, L, acf = 'mar'):
 
 def bin_ave_corr(vdist, vcorr, toll=0.3, plot=False):
     ''' compute block averages to approximate
-     the empirical correlation function'''
+    the empirical correlation function'''
     vd = np.sort(vdist)
     cd = vcorr[np.argsort(vdist)]
     m = np.size(vd)
@@ -671,8 +670,8 @@ def bin_ave_corr(vdist, vcorr, toll=0.3, plot=False):
 
 
 def down_corr(vdist, vcorr, L1, *, acf='mar',
-              use_ave=True, opt_method = 'genetic', disp=True, toll=0.005,
-              plot=False):
+                use_ave=True, opt_method = 'genetic', disp=True, toll=0.005,
+                plot=False):
     '''------------------------------------------------------------------------
     Downscale the correlation function obtained from spatial averages
     INPUT:
@@ -681,11 +680,11 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         L1 = linear scale of spatial averaging (e.g., grid cell resolution)
         acf = type of acf used (default 'mar'). Can be 'mar' or 'str'
         use_ave = True. If true use binned average value of the correlation
-                  function instead of the  actual values
-                  (faster and more stable numerically)
+                    function instead of the  actual values
+                    (faster and more stable numerically)
         method='genetic'. Method used for the optimization.
-               'genetic' -> for a genetic algorithm (suggested, default)
-               'lbfgsb' -> for the L-BFGS-B algoithm.
+                'genetic' -> for a genetic algorithm (suggested, default)
+                'lbfgsb' -> for the L-BFGS-B algoithm.
                         This is only LOCAL and could get stuck in local minima.
         disp= True: display optimization status
     ------------------------------------------------------------------------'''
@@ -703,8 +702,8 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
     if opt_method == 'lbfgsb':
         x0 = (50, 1)  # initial guess
         resmin = minimize(myfun, x0, method="L-BFGS-B",
-                               bounds=((0, 2000), (0, 10)),
-                               options={'gtol': 1e-8, 'disp': True})
+                                bounds=((0, 2000), (0, 10)),
+                                options={'gtol': 1e-8, 'disp': True})
         res[parnames[0]] = resmin.x[0]
         res[parnames[1]] = resmin.x[1]
         res['success'] = resmin.success
@@ -713,7 +712,7 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
     elif opt_method == 'genetic':
         bounds = [(0.0, 200.0),(0.0, 1.00)]
         resmin = differential_evolution(myfun, bounds, disp=disp,
-                                          tol = toll, atol = toll)
+                                            tol = toll, atol = toll)
         res[parnames[0]] = resmin.x[0]
         res[parnames[1]] = resmin.x[1]
         res['success'] = resmin.success
@@ -735,10 +734,10 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         plt.plot(xx, corrL, 'sc', label='integrated correlation')
         if acf=='str':
             plt.plot(xx, str_exp_fun(xx, res[parnames[0]],
-                     res[parnames[1]]), 'r', label='Stretched exp.')
+                        res[parnames[1]]), 'r', label='Stretched exp.')
         else:
             plt.plot(xx, epl_fun(xx, res[parnames[0]],
-                     res[parnames[1]]), 'g', label='Exp.-power law')
+                        res[parnames[1]]), 'g', label='Exp.-power law')
         plt.xlabel('distance [Km]')
         plt.ylabel('correlation [-]')
         plt.ylim([0.4, 1])
@@ -821,7 +820,7 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
         Nd, Cd, Wd (downscaled parameters)
         gam = variance reduction function
         fval = function value at the end of numerical minimization
-       ---------------------------------------------------------------------'''
+    ---------------------------------------------------------------------'''
     Ns = np.asarray(Ns)  # check if scalar input - should be the same for N,C,W
     Cs = np.asarray(Cs)
     Ws = np.asarray(Ws)
@@ -862,15 +861,20 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
         wpfun = lambda w: 2 * w * gamma(2 / w) / (gamma(1 / w)) ** 2 - rhs
 
         res = fsolve(wpfun, 0.1, full_output=True,
-                         xtol=1e-06, maxfev=10000)
+                        xtol=1e-06, maxfev=10000)
         Wd[ii] = res[0]
         info = res[1]
         fval = info['fvec']
         if fval > 1e-5:
             print('warning - downscaling function:: '
-                  'there is something wrong solving fsolve!')
+                    'there is something wrong solving fsolve!')
         Cd[ii] = beta * Wd[ii] * (cs / ws) * gamma(1 / ws) / gamma(1 / Wd[ii])
-        Nd[ii] = np.int( np.rint( Ns[ii] / beta))
+        Nd[ii] = int( np.rint( Ns[ii] / beta)) #Nd[ii] = np.int( np.rint( Ns[ii] / beta))
+
+    print(Nd)
+    print(Cd)
+    print(Wd)
+
     Nd = Nd if not is_scalar else Nd[0]
     Cd = Cd if not is_scalar else Cd[0]
     Wd = Wd if not is_scalar else Wd[0]
@@ -879,9 +883,9 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
 
 
 def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
-              plot=False, tscale=24, save_yearly = True, toll=0.005,
-              maxmiss=36, clat=None, clon=None,
-              opt_method='genetic'):
+                plot=False, tscale=24, save_yearly = True, toll=0.005,
+                maxmiss=36, clat=None, clon=None,
+                opt_method='genetic'):
     '''------------------------------------------------------------------------
     Downscale a precipitation dataset contained in the x-array xdata.
     xdata must have 3 dimensions, named (lat, lon, time)
@@ -890,13 +894,13 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     INPUT:
         xdata = x-array with obs at time scale dt.
         NOTE: rainfall amounts must be ACCUMULATIONS, not rainfall RATES!
-              and the array must already be loaded in memory, not dask!
+                and the array must already be loaded in memory, not dask!
 
         Tr: return time for computing an axtreme value quantile. Must be scalar
 
         thresh = threshold for defining wet days (default = 1mm)
         L0 = scale in [km] to which downscale rainfall statistics
-             (default is L0 = 0.0001 km = 0.1 m ~ rain gauge obs. scale)
+                (default is L0 = 0.0001 km = 0.1 m ~ rain gauge obs. scale)
 
         acf: type of autocorrelation function used. Possibilities:
                 acf='mar' for the power-law described in Marani 2003 (default)
@@ -911,11 +915,11 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
                 in addition to the global ones.
 
         toll: tolerence for optimization of downscaled correlation.
-              (default is 0.005)
+                (default is 0.005)
 
         maxmiss: if computing yearly parameters, do so only for years with
-                 no more than maxmiss days of missing observations
-                 (default is 36, ~10% of obs. at the daily time scale)
+                    no more than maxmiss days of missing observations
+                    (default is 36, ~10% of obs. at the daily time scale)
 
         tscale: timescale at which we want the downscaled statistics [hours]
                 default is 24 hours = DAILY time scale.
@@ -926,8 +930,8 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
                     pixel is selected by default.
 
         method = optimization method for downscaling the correlation
-                 (lbfgsb, genetics or none). Default is 'genetics'.
-                 If none, no correlation downscaling is performed, return nan
+                    (lbfgsb, genetics or none). Default is 'genetics'.
+                    If none, no correlation downscaling is performed, return nan
 
     OUTPUT: Dictionary with the following quantities:
         gamma -> variance reduction function between the two scales
@@ -948,10 +952,10 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
         WYs
 
         eps_s, alp_s, (or d0_s and mu0_s): parameters of the correlation
-                                           function at the pixel scale
+                                            function at the pixel scale
 
         eps_d, alp_d, (or d0_d and mu0_d): parameters of the correlation
-                                           function downscaled at scale L0
+                                            function downscaled at scale L0
 
         corr_down_success -> True if optimization successfun for correlation.
         corr_down_funval -> final value of function minimized to
@@ -964,8 +968,7 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     ------------------------------------------------------------------------'''
     res = {} # initialize dictionary for storing results
     xdata = xdata.where(xdata >= -0.001) # set negative values to np.nan if any
-    xdaily0 = xdata.resample(time ='{}H'.format(tscale)).sum(
-                                     dim='time', skipna=False)
+    xdaily0 = xdata.resample(time ='{}H'.format(tscale)).sum(dim='time', skipna=False)
     xdaily = xdaily0.dropna(dim='time', how='any')
     lons = xdata.lon.values
     lats = xdata.lat.values
@@ -992,15 +995,15 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     c_excesses = tsc.values[tsc.values > thresh] - thresh
     NCW = wei_fit(c_excesses)
     pws = NCW[0]/xdaily.shape[2]
-    Ns = np.int(np.floor(pws*365.25))
+    Ns = int(np.floor(pws*365.25)) #Ns = np.int(np.floor(pws*365.25))
     Cs = NCW[1]
     Ws = NCW[2]
 
     # Taylor Hypothesis for downscaling intermittency
     print('Downscaling Intermittency')
     taylor = downscale_pwet(xdata, thresh=thresh, dt=dt, L1=L1,
-                   target_x=L0, target_t=tscale,
-                   origin_x=L1, origin_t=tscale, ninterp=1000, plot=plot)
+                    target_x=L0, target_t=tscale,
+                    origin_x=L1, origin_t=tscale, ninterp=1000, plot=plot)
 
     print('Downscaling the correlation')
     parnames = ['eps', 'alp'] if acf == 'mar' else ['d0', 'mu0']
@@ -1009,26 +1012,21 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     print('Computing the correlation')
     rcorr = grid_corr(xdaily, plot=plot, thresh=thresh)
     gam_s = vrf(L1, L0, (rcorr['{}_s'.format(parnames[0])],
-                         rcorr['{}_s'.format(parnames[1])]), acf=acf)
-
-
-
+                            rcorr['{}_s'.format(parnames[1])]), acf=acf)
 
     dcorr =  down_corr(rcorr['vdist'], rcorr['vcorr'], L1, acf=acf,
-                     use_ave=True, opt_method=opt_method, toll=toll,
-                       plot=plot)
+                        use_ave=True, opt_method=opt_method, toll=toll,
+                        plot=plot)
 
     # downscaling the Weibull pdf
     print('Downscaling pdf - global Weibull parameters')
     par_acf = (dcorr['{}_d'.format(parnames[0])],
-               dcorr['{}_d'.format(parnames[1])])
-    Nd, Cd, Wd, gam_d, fval_w = down_wei(Ns, Cs, Ws, L1, L0,
-                               taylor['beta'], par_acf, acf=acf)
+                dcorr['{}_d'.format(parnames[1])])
+    Nd, Cd, Wd, gam_d, fval_w = down_wei(Ns, Cs, Ws, L1, L0, taylor['beta'], par_acf, acf=acf)
 
     print('Downscaling pdf - yearly Weibull parameters')
     NCWy, YEARSy = fit_yearly_weibull(tsc, thresh=thresh, maxmiss=maxmiss)
-    NYd, CYd, WYd, _, _ = down_wei(NCWy[:,0], NCWy[:,1], NCWy[:,2], L1, L0,
-                           taylor['beta'], par_acf, acf=acf)
+    NYd, CYd, WYd, _, _ = down_wei(NCWy[:,0], NCWy[:,1], NCWy[:,2], L1, L0, taylor['beta'], par_acf, acf=acf)
 
     if save_yearly:
         res['NYs'] = NCWy[:,0]
@@ -1045,8 +1043,7 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     # x0 = 150.0
     x0 = 9.0*np.mean(CYd)
     res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0]
-    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],
-                                               thresh=thresh)[0]
+    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0]
 
     res['gam_d'] = gam_d
     res['gam_s'] = gam_s
@@ -1196,7 +1193,7 @@ def wei_fit(sample):
     -- threshold without renormalization -- it assumes the values below are
     not present. Default threshold = 0
     INPUT:: sample (array with observations)
-           threshold (default is = 0)
+            threshold (default is = 0)
     OUTPUT::
     returns dimension of the sample (n) (only values above threshold)
     Weibull scale (c) and shape (w) parameters '''
