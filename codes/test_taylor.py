@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 import downscale as down
 
-down.matplotlib_update_settings()
+# down.matplotlib_update_settings()
 tmpa_dir = os.path.join('..', 'data', 'tmpa_conus_data')
 
 '''--------------------------------------------------------------------------
@@ -25,16 +25,14 @@ hours_int = f['hours'][:]
 dset = f['prcp']
 print('dataset shape = {}'.format(dset.shape)) # too large to fit in memory!
 
-
 x = da.from_array(dset, chunks=(6, 6, 300))
 
 # UTC time
 dates = [datetime.strptime(str(integd)+str(inthour), '%Y%m%d%H')
-                 for integd, inthour in zip(dates_int, hours_int)]
+                for integd, inthour in zip(dates_int, hours_int)]
 
 # create xarray
-xrs0 = xr.DataArray(x,  coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
-                                                dims=('lon', 'lat', 'time'))
+xrs0 = xr.DataArray(x,  coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates}, dims=('lon', 'lat', 'time'))
 
 # set negative values to NaN (missing values)
 xrs = xrs0.where(xrs0 >= -0.001)
@@ -51,10 +49,10 @@ nolat = clat + buffer + eps
 ealon = clon + buffer + eps
 welon = clon - buffer - eps
 
-
 bcond = np.logical_and(
-            np.logical_and( xrs.lat > solat, xrs.lat < nolat),
-            np.logical_and( xrs.lon > welon, xrs.lon < ealon))
+                np.logical_and( xrs.lat > solat, xrs.lat < nolat),
+                np.logical_and( xrs.lon > welon, xrs.lon < ealon)
+                )
 
 # selection in space
 # pbox_3h = xrs.where(bcond, drop = True)
@@ -64,15 +62,11 @@ dx = 0.25
 tmax = 48
 # smax = 3
 
-
-
 # XARRAY WITH VALUES
 pbox_3h = xrs.where(bcond, drop = True).load()
 
-
 # NUMPY ARRAY WITH VALUES
 np3h = pbox_3h.values
-
 
 thresh = 1
 
@@ -87,11 +81,9 @@ origin_t = 24 # hours
 pwets, xscales, tscales = down.compute_pwet_xr(pbox_3h, thresh) # *= keyword only argument
 
 res_taylor = down.Taylor_beta(pwets, xscales, tscales, L1=25, target_x=0.001,
-                              target_t=24,
-                      origin_x=25, origin_t=24, ninterp = 1000, plot = True)
+                                target_t=24,
+                                origin_x=25, origin_t=24, ninterp = 1000, plot = True)
 
 beta = res_taylor['beta']
 res_taylor['fig'].show()
 res_taylor['contour'].show()
-
-
