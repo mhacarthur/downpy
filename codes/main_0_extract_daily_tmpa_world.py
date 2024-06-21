@@ -58,7 +58,7 @@ with h5py.File( os.path.join(outdir, inputfile), 'r') as f:
 
     with h5py.File( os.path.join(outdir,outputfile), 'w') as ff:
         dset = ff.create_dataset('prcp', (nblon, nblat, ndates),
-                                           chunks = (1, 1, ndates) , dtype = 'f')
+                                        chunks = (1, 1, ndates) , dtype = 'f')
         dset2 = ff.create_dataset('lat', (nblat,), dtype = 'f')
         dset2[:] = mylat
         dset3 = ff.create_dataset('lon', (nblon,), dtype = 'f')

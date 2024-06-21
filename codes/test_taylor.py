@@ -51,8 +51,7 @@ welon = clon - buffer - eps
 
 bcond = np.logical_and(
                 np.logical_and( xrs.lat > solat, xrs.lat < nolat),
-                np.logical_and( xrs.lon > welon, xrs.lon < ealon)
-                )
+                np.logical_and( xrs.lon > welon, xrs.lon < ealon))
 
 # selection in space
 # pbox_3h = xrs.where(bcond, drop = True)

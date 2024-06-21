@@ -173,8 +173,7 @@ for ix in range(nlon):
                 # x0 = np.mean(myC)*( -np.log((1-Fi[it])/np.mean(myN)))**(1/np.mean(myW))
                 Fi0 = 0.5
                 x0 = np.mean(myC)*( -np.log((1-Fi0**(1/np.mean(myN)))))**(1/np.mean(myW))
-                qmev_quant = down.mev_quant(Fi[it], x0, myN, myC, myW,
-                                                 thresh=thresh)
+                qmev_quant = down.mev_quant(Fi[it], x0, myN, myC, myW, thresh=thresh)
                 if np.logical_not(qmev_quant[1]): # keep only if converging
                     qmev[ix, iy, it] = qmev_quant[0]
                 qgev[ix, iy, it] = down.gev_quant(Fi[it], csi, psi, mu)
@@ -192,8 +191,7 @@ for ix in range(nlon):
 with h5py.File(os.path.join(outdir_data, outname2), "w") as f:
     f.create_dataset("qmev", data = qmev, dtype='f')
     f.create_dataset("qgev", data = qgev, dtype='f')
-    f.create_dataset("num_complete_years", data =
-                             num_complete_years, dtype='int32')
+    f.create_dataset("num_complete_years", data = num_complete_years, dtype='int32')
     f.create_dataset("Tr", data = TR,  dtype='int32')
     f.create_dataset("lat", data = lats,  dtype='f')
     f.create_dataset("lon", data =lons,  dtype='f')
