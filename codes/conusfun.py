@@ -318,10 +318,10 @@ def read_gridded_data(tmpa_hdffile):
     # print('dataset shape = {}'.format(dset.shape))
     x = da.from_array(dset, chunks=(6, 6, 300))
     dates = [datetime.strptime(str(integd)+str(inthour), '%Y%m%d%H')
-             for integd, inthour in zip(dates_int, hours_int)] # UTC time
+            for integd, inthour in zip(dates_int, hours_int)] # UTC time
     xconus = xr.DataArray(x,
-                      coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
-                      dims=('lon', 'lat', 'time'))
+                    coords={'lon':tmpalon, 'lat':tmpalat, 'time':dates},
+                    dims=('lon', 'lat', 'time'))
     return xconus
 
 
@@ -345,8 +345,7 @@ def load_bounding_box(xconus, clon, clat, npix, dropna = False):
     if dropna:
         xdata = xconus.where(bcond, drop = True).load()
     else:
-        xdata = xconus.where(bcond, drop = True
-                             ).dropna(dim='time', how='any').load()
+        xdata = xconus.where(bcond, drop = True).dropna(dim='time', how='any').load()
 
     return xdata
 
@@ -379,7 +378,7 @@ def analyze_cell(i, j, clon, clat, Tr, stat_list_file, tmpa_hdf_file,
     res_evd = {}
     if do_trmm_evd:
         res_evd = tmpa_evd(clon, clat, tmpa_hdf_file, Tr,
-                           thresh=thresh, maxmiss=maxmiss)
+                        thresh=thresh, maxmiss=maxmiss)
 
     res_gauges = {}
     res_tmpa = {}
@@ -403,12 +402,12 @@ def analyze_cell(i, j, clon, clat, Tr, stat_list_file, tmpa_hdf_file,
 
             xconus = read_gridded_data(tmpa_hdf_file)
             xdata = load_bounding_box(xconus, clon, clat, npix,
-                                      dropna=False)
+                                    dropna=False)
 
             res_tmpa = down.downscale(xdata, Tr, thresh=thresh, L0=L0,
-                                      acf=acf, dt=dt,
-            plot=plot, tscale=tscale, save_yearly=save_yearly, toll=toll,
-            maxmiss=maxmiss, clat=clat, clon=clon, opt_method=opt_method)
+                                    acf=acf, dt=dt,
+                                    plot=plot, tscale=tscale, save_yearly=save_yearly, toll=toll,
+                                    maxmiss=maxmiss, clat=clat, clon=clon, opt_method=opt_method)
 
     res = {'i':i, 'j':j, **res_gauges, **res_tmpa, **res_evd, **res_smoke}
     return res

@@ -87,7 +87,7 @@ def matplotlib_update_settings():
         'text.usetex': True,
         'figure.figsize': fig_size,
         # include here any neede package for latex
-        'text.latex.preamble': [r'\usepackage{amsmath}',
+        'text.latex.preamble': [r'\usepackage{amsmath}',do
                                 ],
     }
     plt.rcParams.update(params)
