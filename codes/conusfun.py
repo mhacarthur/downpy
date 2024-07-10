@@ -462,11 +462,11 @@ def load_results_df(csvname='dfres.csv'):
     num_esad_below_25 = np.size(cond21[cond21==False])
     # num_downfun_below_1 = np.size(cond22[cond22==False])
     print(' number of complete pixels where e/a down < 25: '
-          '{}'.format(num_esad_below_25))
+        '{}'.format(num_esad_below_25))
 
 
     print(' number of complete pixels where e/a down > 200: '
-          '{}'.format(num_esad_above_200))
+        '{}'.format(num_esad_above_200))
     # print(' number of complete pixels where down fun > 1: '
     #       '{}'.format(num_downfun_below_1))
     # cond2 = np.logical_and(cond21, cond22)
@@ -502,6 +502,5 @@ def load_results_netcdf(ncname='ncres.nc', elevname='elev.hdf5'):
     ncres['etaESA'] = (ncres['esa_d'] - ncres['esa_g'])/ncres['esa_g']
 
     # set values with epsilon/alpha < 25 to NaN
-
 
     return ncres

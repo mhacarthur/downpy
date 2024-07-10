@@ -871,9 +871,9 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
         Cd[ii] = beta * Wd[ii] * (cs / ws) * gamma(1 / ws) / gamma(1 / Wd[ii])
         Nd[ii] = int( np.rint( Ns[ii] / beta)) #Nd[ii] = np.int( np.rint( Ns[ii] / beta))
 
-    print(Nd)
-    print(Cd)
-    print(Wd)
+    # print(Nd)
+    # print(Cd)
+    # print(Wd)
 
     Nd = Nd if not is_scalar else Nd[0]
     Cd = Cd if not is_scalar else Cd[0]
@@ -1069,7 +1069,104 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
         res['Taylor_contour'] = taylor['contour']
     return res
 
+def downscale_WITHOUT_PRINT(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
+                plot=False, tscale=24, save_yearly = True, toll=0.005,
+                maxmiss=36, clat=None, clon=None,
+                opt_method='genetic'):
 
+    res = {} # initialize dictionary for storing results
+    xdata = xdata.where(xdata >= -0.001) # set negative values to np.nan if any
+    xdaily0 = xdata.resample(time ='{}H'.format(tscale)).sum(dim='time', skipna=False)
+    xdaily = xdaily0.dropna(dim='time', how='any')
+    lons = xdata.lon.values
+    lats = xdata.lat.values
+    nlon = np.size(lons)
+    nlat = np.size(lats)
+    dx = np.abs(lons[1] - lons[0])
+    if (bool(clat) and bool(clon) and clat in lats and clon in lons):
+        clat = lats[np.argmin(np.abs(clat - lats))]
+        clon = lons[np.argmin(np.abs(clon - lons))]
+        # otherwise us the one provided by the
+    else:
+        clat = lats[np.argmin(np.abs(np.mean(lats) - lats))]
+        clon = lons[np.argmin(np.abs(np.mean(lons) - lons))]
+    L1 = area_lat_long(clat, clon, dx, dx)[0] # in Km
+    # get the pixel closer to the center as central pixel:
+    # get the time series for the central pixel
+    tsc = xdaily.loc[dict(lat = clat, lon = clon)]
+
+    # c_excesses = np.maximum(tsc.values-thresh, 0.0)
+    c_excesses = tsc.values[tsc.values > thresh] - thresh
+    NCW = wei_fit(c_excesses)
+    pws = NCW[0]/xdaily.shape[2]
+    Ns = int(np.floor(pws*365.25)) #Ns = np.int(np.floor(pws*365.25))
+    Cs = NCW[1]
+    Ws = NCW[2]
+
+    # Taylor Hypothesis for downscaling intermittency
+    taylor = downscale_pwet(xdata, thresh=thresh, dt=dt, L1=L1,
+                    target_x=L0, target_t=tscale,
+                    origin_x=L1, origin_t=tscale, ninterp=1000, plot=plot)
+
+    parnames = ['eps', 'alp'] if acf == 'mar' else ['d0', 'mu0']
+
+    # Correlation downscaling
+    rcorr = grid_corr(xdaily, plot=plot, thresh=thresh)
+    gam_s = vrf(L1, L0, (rcorr['{}_s'.format(parnames[0])],
+                            rcorr['{}_s'.format(parnames[1])]), acf=acf)
+
+    dcorr =  down_corr(rcorr['vdist'], rcorr['vcorr'], L1, acf=acf,
+                        use_ave=True, opt_method=opt_method, toll=toll,
+                        plot=plot)
+
+    # downscaling the Weibull pdf
+    par_acf = (dcorr['{}_d'.format(parnames[0])],
+                dcorr['{}_d'.format(parnames[1])])
+    Nd, Cd, Wd, gam_d, fval_w = down_wei(Ns, Cs, Ws, L1, L0, taylor['beta'], par_acf, acf=acf)
+
+    NCWy, YEARSy = fit_yearly_weibull(tsc, thresh=thresh, maxmiss=maxmiss)
+    NYd, CYd, WYd, _, _ = down_wei(NCWy[:,0], NCWy[:,1], NCWy[:,2], L1, L0, taylor['beta'], par_acf, acf=acf)
+
+    if save_yearly:
+        res['NYs'] = NCWy[:,0]
+        res['CYs'] = NCWy[:,1]
+        res['WYs'] = NCWy[:,2]
+        res['NYd'] = NYd
+        res['CYd'] = CYd
+        res['WYd'] = WYd
+
+    # estimate some extreme quantiles with MEVD
+    # Tr = np.array([10, 20, 50, 100]) # pass
+    Fi = 1-1/Tr
+    res['Tr'] = Tr
+    # x0 = 150.0
+    x0 = 9.0*np.mean(CYd)
+    res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0]
+    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0]
+
+    res['gam_d'] = gam_d
+    res['gam_s'] = gam_s
+    res['beta'] = taylor['beta']
+    res['Nd'] = Nd
+    res['Cd'] = Cd
+    res['Wd'] = Wd
+    res['Ns'] = Ns
+    res['Cs'] = Cs
+    res['Ws'] = Ws
+    res['{}_s'.format(parnames[0])] = rcorr['{}_s'.format(parnames[0])]
+    res['{}_s'.format(parnames[1])] = rcorr['{}_s'.format(parnames[1])]
+    res['{}_d'.format(parnames[0])] = dcorr['{}_d'.format(parnames[0])]
+    res['{}_d'.format(parnames[1])] = dcorr['{}_d'.format(parnames[1])]
+    res['corr_down_success'] =        dcorr['success']
+    res['corr_down_funval'] =         dcorr['funval']
+    res['w_down_funval'] = fval_w[0]
+    res['thresh'] = thresh
+    res['clat'] = clat
+    res['clon'] = clon
+    if plot:
+        res['corr_plot'] = dcorr['fig']
+        res['Taylor_contour'] = taylor['contour']
+    return res
 
 ################################################################################
 

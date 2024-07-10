@@ -29223,7 +29223,6 @@ http://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2008/001/3B42.200
 http://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2008/001/3B42.20080101.06.7A.HDF
 http://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2008/001/3B42.20080101.03.7A.HDF
 http://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2007/365/3B42.20080101.00.7A.HDF
-https://disc2.gesdisc.eosdis.nasa.gov/data/TRMM_L3/TRMM_3B42.7/doc/README.TRMM_V7.pdf
 
 
 

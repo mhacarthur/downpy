@@ -68,8 +68,7 @@ qgev = np.zeros((nlon, nlat, ntr))
 for ii, clon in enumerate(tmpalon):
     print(ii)
     for jj, clat in enumerate(tmpalat):
-        xpixel = xconus.sel(lat=clat, lon=clon).dropna(
-                    dim='time', how='any').load()
+        xpixel = xconus.sel(lat=clat, lon=clon).dropna(dim='time', how='any').load()
         ts = xpixel.values
         years = xpixel.time.dt.year.values
         df = pd.DataFrame({'PRCP': ts, 'YEAR': years})

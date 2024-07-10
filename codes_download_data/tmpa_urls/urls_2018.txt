@@ -2429,8 +2429,7 @@ https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2018/001/3B42.20
 https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2018/001/3B42.20180101.09.7.HDF
 https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2018/001/3B42.20180101.06.7.HDF
 https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2018/001/3B42.20180101.03.7.HDF
-https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2017/365/3B42.20180101.00.7.HDF
-https://disc2.gesdisc.eosdis.nasa.gov/data/TRMM_L3/TRMM_3B42.7/doc/README.TRMM_V7.pdf
+https://disc2.gesdisc.eosdis.nasa.gov/data//TRMM_L3/TRMM_3B42.7/2017/365/3B42.20180101.00.7.HDFs
 
 
 

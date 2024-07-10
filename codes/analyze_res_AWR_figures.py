@@ -14,8 +14,7 @@ import matplotlib as mpl
 ncres = cfun.load_results_netcdf(ncname='ncres_cluster_30580.nc')
 list(ncres.variables)
 df = cfun.load_results_df(csvname='dfres_cluster_30580.csv')
-dfg = pd.read_csv(os.path.join(cfun.outdir_data,
-                   'dfres_gauges_1451.csv'), index_col=0)
+dfg = pd.read_csv(os.path.join(cfun.outdir_data, 'dfres_gauges_1451.csv'), index_col=0)
 
 # plot 4x4 maps with extremes gridded and scatter plot
 mytr = 50
@@ -61,16 +60,16 @@ print('gev min val = {}'.format( np.min(gev_data[~np.isnan(gev_data)])))
 # ax = fig.add_axes([0.1,0.1,0.8,0.8])
 
 def conusmap(grid_data=None, boxlat=None, boxlon=None, label=None,
-             scatter=False, ax=None, df=None, dfkey=None,
-             vmin=20, vmax=500, colorbar=True):
+              scatter=False, ax=None, df=None, dfkey=None,
+              vmin=20, vmax=500, colorbar=True):
     m = Basemap(projection='merc',
-                resolution='l',
-                # get these from conusdata
-                llcrnrlon = -130,   # lower right cornet lat
-                llcrnrlat = 22,
-                urcrnrlon = -60,  # upper right corner
-                urcrnrlat = 50,
-                ax=ax)  # latitude of the true scale
+                  resolution='l',
+                  # get these from conusdata
+                  llcrnrlon = -130,   # lower right cornet lat
+                  llcrnrlat = 22,
+                  urcrnrlon = -60,  # upper right corner
+                  urcrnrlat = 50,
+                  ax=ax)  # latitude of the true scale
     # draw coastlines, state and country boundaries, edge of map.
     m.drawcoastlines()
     m.drawstates()
@@ -98,9 +97,9 @@ def conusmap(grid_data=None, boxlat=None, boxlon=None, label=None,
             cbar.set_ticklabels([20, 50, 100, 200, 500])
     if scatter:
         sc = m.scatter(df['LON'].values, df['LAT'].values,
-                               marker='o', c= df[dfkey].values, s=5,
-                       zorder=10 , latlon=True, cmap='jet',
-                       vmin=vmin, vmax=vmax, norm=mpl.colors.LogNorm()) ## mod
+                        marker='o', c= df[dfkey].values, s=5,
+                        zorder=10 , latlon=True, cmap='jet',
+                        vmin=vmin, vmax=vmax, norm=mpl.colors.LogNorm()) ## mod
         if colorbar:
             cbar2 = m.colorbar(sc,location='bottom',pad="8%")
             cbar2.set_label(label, fontsize=18)
@@ -154,21 +153,15 @@ plt.show()
 
 # figure 2 - correlation downscaling vs Longitude
 fig, axes = plt.subplots(figsize=(12, 6.5), ncols=2, nrows=1)
-axes[0].plot(df['clon'], df['esa_s'], 'or', markersize = 3,
-             label=r'QPEs $\epsilon^{(L)} / \alpha^{(L)}$')
-axes[0].plot(df['clon'], df['esa_d'], 'ob', markersize = 3,
-             label=r'downscaled $\epsilon / \alpha$')
-axes[0].plot(df['clon'], df['esa_g'], 'og', markersize = 3,
-             label=r'gauges $\epsilon_g / \alpha_g$')
+axes[0].plot(df['clon'], df['esa_s'], 'or', markersize = 3, label=r'QPEs $\epsilon^{(L)} / \alpha^{(L)}$')
+axes[0].plot(df['clon'], df['esa_d'], 'ob', markersize = 3, label=r'downscaled $\epsilon / \alpha$')
+axes[0].plot(df['clon'], df['esa_g'], 'og', markersize = 3, label=r'gauges $\epsilon_g / \alpha_g$')
 axes[0].legend()
 axes[0].set_xlabel('Longitude [West]')
 axes[0].set_ylabel(r'Correlation kernel spatial scale  [km]')
-axes[1].plot(df['clon'], df['gam_s'], 'or', markersize = 3,
-             label=r'QPEs $\gamma_{0,L}$')
-axes[1].plot(df['clon'], df['gam_d'], 'ob', markersize = 3,
-             label=r'downscaled $\gamma_{0,d}$')
-axes[1].plot(df['clon'], df['gam_g'], 'og', markersize = 3,
-             label=r'gauge $\gamma_{0,g}$')
+axes[1].plot(df['clon'], df['gam_s'], 'or', markersize = 3, label=r'QPEs $\gamma_{0,L}$')
+axes[1].plot(df['clon'], df['gam_d'], 'ob', markersize = 3, label=r'downscaled $\gamma_{0,d}$')
+axes[1].plot(df['clon'], df['gam_g'], 'og', markersize = 3, label=r'gauge $\gamma_{0,g}$')
 axes[1].legend()
 axes[1].set_xlabel('Longitude [West]')
 axes[1].set_ylabel(r'Variance reduction factor $\gamma_0$ [-]')
@@ -276,8 +269,7 @@ fig, axes = plt.subplots(nrows=2, ncols=2, figsize = (8, 8))
 
 xy = np.vstack([Gd, Gg])
 z = gaussian_kde(xy)(xy)
-axes[0, 0].scatter(Gg, Gd,
-                   c=z, s=20, edgecolor='', cmap = 'jet')
+axes[0, 0].scatter(Gg, Gd, c=z, s=20, edgecolor='', cmap = 'jet')
 axes[0, 0].text(0.05, 0.90, '(a)', transform=axes[0, 0].transAxes, size=18)
 amin = min(np.min(Gg), np.min(Gd))
 amax = max(np.max(Gg), np.max(Gd))
@@ -291,8 +283,7 @@ axes[0, 0].set_yticks([0.5, 0.6, 0.7, 0.8, 0.9, 1])
 
 xy = np.vstack([Nd, Ng])
 z = gaussian_kde(xy)(xy)
-axes[0, 1].scatter(Ng, Nd,
-  c=z, s=20, edgecolor='', cmap = 'jet')
+axes[0, 1].scatter(Ng, Nd, c=z, s=20, edgecolor='', cmap = 'jet')
 axes[0, 1].text(0.05, 0.90, '(b)', transform=axes[0, 1].transAxes, size=18)
 amin = min(np.min(Ng), np.min(Nd))
 amax = max(np.max(Ng), np.max(Nd))
@@ -307,8 +298,7 @@ axes[0, 1].set_yticks([0, 50, 100, 150])
 
 xy = np.vstack([Wd, Wg])
 z = gaussian_kde(xy)(xy)
-axes[1, 1].scatter(Wg, Wd,
-  c=z, s=20, edgecolor='', cmap = 'jet')
+axes[1, 1].scatter(Wg, Wd, c=z, s=20, edgecolor='', cmap = 'jet')
 axes[1, 1].text(0.05, 0.90, '(d)', transform=axes[1, 1].transAxes, size=18)
 amin = min(np.min(Wg), np.min(Wd))
 amax = max(np.max(Wg), np.max(Wd))
@@ -323,8 +313,7 @@ axes[1, 1].set_yticks([0.5, 0.7, 0.9, 1.1])
 
 xy = np.vstack([Cd, Cg])
 z = gaussian_kde(xy)(xy)
-axes[1, 0].scatter(Cg, Cd,
-  c=z, s=20, edgecolor='', cmap = 'jet')
+axes[1, 0].scatter(Cg, Cd, c=z, s=20, edgecolor='', cmap = 'jet')
 axes[1, 0].text(0.05, 0.90, '(c)', transform=axes[1, 0].transAxes, size=18)
 amin = min(np.min(Cg), np.min(Cd))
 amax = max(np.max(Cg), np.max(Cd))

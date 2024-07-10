@@ -284,5 +284,5 @@ m4, cs4 = worldmap(grid_data=datamat4,
 # cbar.set_label('Annual maximum daily rainfall [mm]')
 plt.tight_layout()
 plt.savefig(os.path.join(cfun.outplot,
-                         'predicted_error_maps.png'), dpi=600)
+                        'predicted_error_maps.png'), dpi=600)
 plt.show()
