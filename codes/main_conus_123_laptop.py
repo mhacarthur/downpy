@@ -161,6 +161,4 @@ dset.to_netcdf( os.path.join(cfun.outdir_data,
 #     file1.write(str(ninput))
 
 exec_time = time.time() - init_time
-print('Execution time was  = {} minutes'.format(exec_time/60))
-
-
+print('Execution time was  = {} minutes'.format(exec_time/60))sss

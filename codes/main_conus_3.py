@@ -91,15 +91,15 @@ if __name__ == '__main__':
     # but first let us drop the variables with too many dimensions
     dfres = pd.DataFrame(RES)
     to_drop = ['mev_s', 'mev_g', 'mev_d', 'mev_s_all', 'gev_s_all', 'Tr',
-               'NYs', 'NYd', 'CYs', 'CYd', 'WYs', 'WYd',
-                                    'NYg', 'CYg', 'WYg']# remove
+                    'NYs', 'NYd', 'CYs', 'CYd', 'WYs', 'WYd',
+                    'NYg', 'CYg', 'WYg']# remove
 
     for elem in to_drop:
         if elem in dfres.columns:
             dfres.drop(elem, inplace=True, axis=1)
 
     dfres.to_csv(os.path.join(cfun.outdir_data,
-              'dfres_cluster_{}.csv'.format(ninput)))
+                'dfres_cluster_{}.csv'.format(ninput)))
 
 
     # # now save from list to dictionary of arrays - scalars only
