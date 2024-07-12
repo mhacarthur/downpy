@@ -22,7 +22,6 @@ compute_daily = True
 compute_hourly = True
 download_data = True
 
-
 pass_file = 'user_noaa.txt'
 usp = [line.rstrip('\n') for line in open(pass_file) if line.strip(' \n') != '']
 user_name = usp[0]
@@ -35,7 +34,6 @@ user_name = usp[0]
 #     output_dir = os.path.join('..', '..', 'data', 'data_noaa_hpd_gauges')
 # if not os.path.exists(output_dir):
 #     os.mkdir(output_dir)
-
 
 output_dir = os.path.join('..', 'data', 'data_noaa_hpd_gauges')
 if not os.path.exists(output_dir):
