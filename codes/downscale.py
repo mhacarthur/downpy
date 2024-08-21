@@ -138,10 +138,6 @@ def area_lat_long(lat_c, lon_c, dlat, dlon):
     my_edge = np.sqrt(my_area)
     return my_edge, my_area, hor_size, vert_size
 
-
-
-
-
 def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
                     target_x=0.0001, target_t=24,
                     origin_x=25, origin_t=24, ninterp=1000, plot=False):

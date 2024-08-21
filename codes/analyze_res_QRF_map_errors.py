@@ -119,18 +119,18 @@ if not load_already_saved:
             NYe = NYd/(etaN_mat[i, j] + 1)
             CYe = CYd/(etaC_mat[i, j] + 1)
             WYe = WYd/(etaW_mat[i, j] + 1)
-            mevD_mat[i, j] = down.mev_quant(Fi, 9.0*np.mean(CYd), NYd, CYd, WYd,
-                                      thresh=cfun.pixelkwargs['thresh'])[0]
-            mevE_mat[i, j] = down.mev_quant(Fi, 9.0*np.mean(CYe), NYe, CYe, WYe,
-                                         thresh=cfun.pixelkwargs['thresh'])[0]
+            mevD_mat[i, j] = down.mev_quant(Fi, 9.0*np.mean(CYd), NYd, CYd, WYd, thresh=cfun.pixelkwargs['thresh'])[0]
+            mevE_mat[i, j] = down.mev_quant(Fi, 9.0*np.mean(CYe), NYe, CYe, WYe, thresh=cfun.pixelkwargs['thresh'])[0]
             etaQ_mat[i, j] = (mevD_mat[i, j] - mevE_mat[i, j])/ mevE_mat[i, j]
     # write the results to output::
-    dset = xr.Dataset({'etaC':(['x', 'y'], etaC_mat),
-                       'etaW':(['x', 'y'], etaW_mat),
-                       'etaN':(['x', 'y'], etaN_mat),
-                       'etaQ':(['x', 'y'], etaQ_mat)},
-                       coords={'lon': (['x'], lon),
-                               'lat': (['y'], lat)})
+    dset = xr.Dataset({
+                    'etaC':(['x', 'y'], etaC_mat),
+                    'etaW':(['x', 'y'], etaW_mat),
+                    'etaN':(['x', 'y'], etaN_mat),
+                    'etaQ':(['x', 'y'], etaQ_mat)},
+                    coords={
+                        'lon': (['x'], lon),
+                        'lat': (['y'], lat)})
     dset.to_netcdf(os.path.join(cfun.outdir_data, file_name_save), mode='w')
 
 
@@ -143,10 +143,10 @@ dset2 = xr.open_dataset(os.path.join(cfun.outdir_data, file_name_save))
 
 
 def worldmap(grid_data=None, boxlat=None, boxlon=None, label=None,
-             scatter=False, ax=None, df=None, dfkey=None,
-             vmin=0, vmax=1000, nb=50.0, sb=22.0,
-             wb=-130.0, eb=-60.0, maskocean = True, colorbar=True,
-             return_cs = False, logscale = False, quantilerror = False):
+            scatter=False, ax=None, df=None, dfkey=None,
+            vmin=0, vmax=1000, nb=50.0, sb=22.0,
+            wb=-130.0, eb=-60.0, maskocean = True, colorbar=True,
+            return_cs = False, logscale = False, quantilerror = False):
     m = Basemap(projection='merc',
                 resolution='l',
                 # get these from conusdata
@@ -172,7 +172,7 @@ def worldmap(grid_data=None, boxlat=None, boxlon=None, label=None,
         newdata = grid_data
         if not logscale:
             cs = m.pcolormesh(x, y, newdata, cmap = 'jet', vmin=vmin, vmax=vmax)
-                              # norm=mpl.colors.LogNorm() )
+                            # norm=mpl.colors.LogNorm() )
         else:
             cs = m.pcolormesh(x, y, newdata, cmap = 'jet', vmin=vmin, vmax=vmax,
             norm=mpl.colors.LogNorm() )
@@ -181,7 +181,7 @@ def worldmap(grid_data=None, boxlat=None, boxlon=None, label=None,
             if not logscale:
                 if not quantilerror:
                     cbar = m.colorbar(cs,location='bottom',pad="8%")
-                                  # norm=mpl.colors.LogNorm() )
+                                # norm=mpl.colors.LogNorm() )
                 else:
                     cbar = m.colorbar(cs,location='bottom',pad="8%", ticks=[-0.5, 0, 0.5, 1])
                     cbar.set_ticklabels([r'$< -0.5$', '0', '0.5', r'$> 1$'])  # vertically oriented colorbar
