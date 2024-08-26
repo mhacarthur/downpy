@@ -1016,8 +1016,8 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
 
     # downscaling the Weibull pdf
     print('Downscaling pdf - global Weibull parameters')
-    par_acf = (dcorr['{}_d'.format(parnames[0])],
-                dcorr['{}_d'.format(parnames[1])])
+    par_acf = (dcorr['{}_d'.format(parnames[0])], dcorr['{}_d'.format(parnames[1])])
+
     Nd, Cd, Wd, gam_d, fval_w = down_wei(Ns, Cs, Ws, L1, L0, taylor['beta'], par_acf, acf=acf)
 
     print('Downscaling pdf - yearly Weibull parameters')
@@ -1025,39 +1025,40 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     NYd, CYd, WYd, _, _ = down_wei(NCWy[:,0], NCWy[:,1], NCWy[:,2], L1, L0, taylor['beta'], par_acf, acf=acf)
 
     if save_yearly:
-        res['NYs'] = NCWy[:,0]
-        res['CYs'] = NCWy[:,1]
-        res['WYs'] = NCWy[:,2]
-        res['NYd'] = NYd
-        res['CYd'] = CYd
-        res['WYd'] = WYd
+        res['NYs'] = NCWy[:,0] # yearly Weibull parameters
+        res['CYs'] = NCWy[:,1] # yearly Weibull parameters
+        res['WYs'] = NCWy[:,2] # yearly Weibull parameters
+        res['NYd'] = NYd # Nd, Cd, Wd (downscaled parameters)
+        res['CYd'] = CYd # Nd, Cd, Wd (downscaled parameters)
+        res['WYd'] = WYd # Nd, Cd, Wd (downscaled parameters)
 
     # estimate some extreme quantiles with MEVD
+    # Tr: return time for computing an axtreme value quantile. Must be scalar
     # Tr = np.array([10, 20, 50, 100]) # pass
     Fi = 1-1/Tr
     res['Tr'] = Tr
     # x0 = 150.0
     x0 = 9.0*np.mean(CYd)
-    res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0]
-    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0]
+    res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
+    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
 
-    res['gam_d'] = gam_d
-    res['gam_s'] = gam_s
-    res['beta'] = taylor['beta']
-    res['Nd'] = Nd
-    res['Cd'] = Cd
-    res['Wd'] = Wd
-    res['Ns'] = Ns
-    res['Cs'] = Cs
-    res['Ws'] = Ws
+    res['gam_d'] = gam_d # variance reduction function downscale
+    res['gam_s'] = gam_s # variance reduction factor
+    res['beta'] = taylor['beta'] # ratio between pwet at the grid cell scale () to pwet at the target subgrid scale ()
+    res['Nd'] = Nd # Nd, Cd, Wd (downscaled parameters)
+    res['Cd'] = Cd # Nd, Cd, Wd (downscaled parameters)
+    res['Wd'] = Wd # Nd, Cd, Wd (downscaled parameters)
+    res['Ns'] = Ns # global Weibull parameters
+    res['Cs'] = Cs # global Weibull parameters
+    res['Ws'] = Ws # global Weibull parameters
     res['{}_s'.format(parnames[0])] = rcorr['{}_s'.format(parnames[0])]
     res['{}_s'.format(parnames[1])] = rcorr['{}_s'.format(parnames[1])]
     res['{}_d'.format(parnames[0])] = dcorr['{}_d'.format(parnames[0])]
     res['{}_d'.format(parnames[1])] = dcorr['{}_d'.format(parnames[1])]
     res['corr_down_success'] =        dcorr['success']
     res['corr_down_funval'] =         dcorr['funval']
-    res['w_down_funval'] = fval_w[0]
-    res['thresh'] = thresh
+    res['w_down_funval'] = fval_w[0] # function value at the end of numerical minimization
+    res['thresh'] = thresh # threshold used in the analysis
     res['clat'] = clat
     res['clon'] = clon
     if plot:
