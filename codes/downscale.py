@@ -231,7 +231,7 @@ def compute_pwet_xr(xray, thresh, *,
         return np.size(array[array > thresh])/np.size(array)
 
     for it, st in enumerate(tscales):
-        datamat = xray.resample(time='{}H'.format(st)).sum(
+        datamat = xray.resample(time='{}h'.format(st)).sum(
                                     dim='time', skipna = False)
 
         for ix, sx in enumerate(xscales):
@@ -964,7 +964,7 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     ------------------------------------------------------------------------'''
     res = {} # initialize dictionary for storing results
     xdata = xdata.where(xdata >= -0.001) # set negative values to np.nan if any
-    xdaily0 = xdata.resample(time ='{}H'.format(tscale)).sum(dim='time', skipna=False)
+    xdaily0 = xdata.resample(time ='{}h'.format(tscale)).sum(dim='time', skipna=False)
     xdaily = xdaily0.dropna(dim='time', how='any')
     lons = xdata.lon.values
     lats = xdata.lat.values
