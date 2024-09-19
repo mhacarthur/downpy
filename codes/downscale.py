@@ -1290,6 +1290,7 @@ def wei_fit(sample):
             threshold (default is = 0)
     OUTPUT::
     returns dimension of the sample (n) (only values above threshold)
+    N represent the number of observations > threshold
     Weibull scale (c) and shape (w) parameters '''
     sample = np.asarray(sample) # from list to Numpy array
     wets   = sample[sample > 0.0]
