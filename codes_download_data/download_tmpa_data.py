@@ -2,6 +2,7 @@
 import os
 import time
 import requests
+import pandas as pd
 
 start_time = time.time()
 
@@ -24,7 +25,6 @@ class SessionWithHeaderRedirection(requests.Session):
                 del headers['Authorization']
         return
 
-
 def download_my_urls(list_of_urls, out_dir, username, password):
     session = SessionWithHeaderRedirection(username, password)
     n_urls = len(list_of_urls)
@@ -46,36 +46,44 @@ def download_my_urls(list_of_urls, out_dir, username, password):
             # handle any errors here
             print(e)
 
-# data to download:
-# years of observations I want to download:
-# years = [2014, 2015, 2016, 2017]
-# keep this file in the right folder, where you want to download the data
+def download_my_urls_v2(url, out_file, username, password):
+    try:
+        session = SessionWithHeaderRedirection(username, password)
+        response = session.get(url, stream=True)
+        response.raise_for_status()
+        with open(out_file, 'wb') as fd:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    fd.write(chunk)
+    except requests.exceptions.HTTPError as e:
+            print(e)
 
-pass_file = 'user_password.txt'
-usp = [line.rstrip('\n') for line in open(pass_file)
-                                if line.strip(' \n') != '']
-username = usp[0]
-password = usp[1]
+username = os.environ['EARTH_DATA_USER']
+password = os.environ['EARTH_DATA_PASS']
 
-urls_folder = 'tmpa_urls'
-url_files = os.listdir(urls_folder)
-num_url_files = len(url_files)
-out_dir = os.path.join('..', 'data','tmpa_raw_data')
+out_dir = os.path.join('..','data','tmpa_raw_data')
+
 if not os.path.exists(out_dir):
     print('download_tmpa_data WARNING: output folder not found-must create it!')
-#if not os.path.exists(out_dir):
-#    os.makedirs(out_dir)
+else:
+    print(f'Data download to: {out_dir}')
 
-print('number of url files is {}'.format(num_url_files))
-for iiy in range(num_url_files):
-    # out_dir = os.path.join('raw_data')
-    file_urls = os.path.join(urls_folder, url_files[iiy])
-    lines = [line.rstrip('\n') for line in open(file_urls)
-                                    if line.strip(' \n') != '']
-    print('number of urls in {} th url file is {}'.format(iiy, len(lines)))
-    print(iiy)
-    download_my_urls(lines, out_dir, username, password)
+urls_folder = os.path.join('..','codes_download_data','tmpa_urls')
+url_dir = os.path.join(urls_folder,'urls_2008_2016.csv')
+URLS = pd.read_csv(url_dir)
 
+URLS = URLS.sort_values(by=['year'])
+URLS = URLS.reset_index(drop=True)
+
+print('Number of url files {}'.format(len(URLS)))
+for iiy in range(len(URLS)):
+    name_tmp = URLS['url'][iiy].split('//')[-1].split('/')[-1]
+    out_file = os.path.join('..','data','tmpa_raw_data',name_tmp)
+
+    if not os.path.isfile(out_file):
+        download_my_urls_v2(URLS['url'][iiy], out_file, username, password)
+    else:
+        print(f'File exists')
+        continue
 
 execution_time = time.time() - start_time
 print("---execution time was %s minutes ---" % (execution_time/60))
