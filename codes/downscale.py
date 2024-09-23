@@ -138,12 +138,12 @@ def area_lat_long(lat_c, lon_c, dlat, dlon):
     my_edge = np.sqrt(my_area)
     return my_edge, my_area, hor_size, vert_size
 
-def downscale_pwet(xdata, *, thresh=1, dt=3, L1=10,
-                    target_x=0.0001, target_t=24,
-                    origin_x=10, origin_t=24, ninterp=1000, plot=False):
-# def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
+# def downscale_pwet(xdata, *, thresh=1, dt=3, L1=10,
 #                     target_x=0.0001, target_t=24,
-#                     origin_x=25, origin_t=24, ninterp=1000, plot=False):
+#                     origin_x=10, origin_t=24, ninterp=1000, plot=False):
+def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
+                    target_x=0.0001, target_t=24,
+                    origin_x=25, origin_t=24, ninterp=1000, plot=False):
     '''------------------------------------------------------------------------
     Use a Taylor hypothesis to trade space for time and give an estimate
     of the wet fraction above a certain threshold at a spatial scale smaller
@@ -289,10 +289,10 @@ def compute_pwet_xr(xray, thresh, *,
     return pwets, xscales, tscales
 
 
-def Taylor_beta(pwets, xscales, tscales, *, L1=10, target_x=0.001, target_t=24,
-                    origin_x=10, origin_t=3, ninterp = 1000, plot=False):
-# def Taylor_beta(pwets, xscales, tscales, *, L1=25,target_x=0.0001, target_t=24,
-#                     origin_x=25, origin_t=24, ninterp = 1000, plot=False):
+# def Taylor_beta(pwets, xscales, tscales, *, L1=10, target_x=0.001, target_t=24,
+#                     origin_x=10, origin_t=3, ninterp = 1000, plot=False):
+def Taylor_beta(pwets, xscales, tscales, *, L1=25,target_x=0.0001, target_t=24,
+                    origin_x=25, origin_t=24, ninterp = 1000, plot=False):
     '''------------------------------------------------------------------
     Extrapolate the wet fraction of the rainfall fields at small scales
     smaller than the resolution of the gridded precipitation product.
@@ -1045,6 +1045,8 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
     x0 = 9.0*np.mean(CYd)
     res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
     res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
+
+    res['YEARS'] = YEARSy # Add for Arturo
 
     res['gam_d'] = gam_d # variance reduction function downscale
     res['gam_s'] = gam_s # variance reduction factor
