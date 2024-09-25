@@ -1,6 +1,3 @@
-
-
-
 import numpy as np
 from scipy.optimize import curve_fit, minimize, fsolve
 import matplotlib.pyplot as plt
@@ -10,8 +7,6 @@ import pandas as pd
 from scipy.special import gamma
 from scipy.integrate import dblquad, nquad
 from scipy.optimize import differential_evolution
-
-
 
 '''----------------------------------------------------------------------------
 Functions for downscaling gridded precipitation data.
@@ -48,7 +43,6 @@ downscale
 -------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------'''
-
 
 def matplotlib_update_settings():
     # http://wiki.scipy.org/Cookbook/Matplotlib/LaTeX_Examples
@@ -93,7 +87,6 @@ def matplotlib_update_settings():
     plt.rcParams.update(params)
     return
 
-
 def haversine(lat1, lat2, lon1, lon2,
                 convert_to_rad=True):
     '''compute haversine distance btw 2 points.
@@ -115,7 +108,6 @@ def haversine(lat1, lat2, lon1, lon2,
     a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
     dist = 2*R*np.arctan2( np.sqrt(a), np.sqrt(1-a))
     return dist
-
 
 def area_lat_long(lat_c, lon_c, dlat, dlon):
     """----------------------------------------------------------
@@ -141,9 +133,9 @@ def area_lat_long(lat_c, lon_c, dlat, dlon):
 # def downscale_pwet(xdata, *, thresh=1, dt=3, L1=10,
 #                     target_x=0.0001, target_t=24,
 #                     origin_x=10, origin_t=24, ninterp=1000, plot=False):
-def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
-                    target_x=0.0001, target_t=24,
-                    origin_x=25, origin_t=24, ninterp=1000, plot=False):
+def downscale_pwet(xdata, *, thresh=1, dt=3, L1,
+                    target_x=0.0001, target_t,
+                    origin_x, origin_t=24, ninterp=1000, plot=False):
     '''------------------------------------------------------------------------
     Use a Taylor hypothesis to trade space for time and give an estimate
     of the wet fraction above a certain threshold at a spatial scale smaller
@@ -184,7 +176,7 @@ def downscale_pwet(xdata, *, thresh=1, dt=3, L1=25,
 
 
 def compute_pwet_xr(xray, thresh, *,
-                    cube1size=3, dt=3, tmax=48):
+                    cube1size, dt=3, tmax=48):
     '''-----------------------------------------------------------------------
     Compute the fraction of observations above a given threshold for
     different integration scales (in time) and averaging scales (space)
@@ -291,8 +283,8 @@ def compute_pwet_xr(xray, thresh, *,
 
 # def Taylor_beta(pwets, xscales, tscales, *, L1=10, target_x=0.001, target_t=24,
 #                     origin_x=10, origin_t=3, ninterp = 1000, plot=False):
-def Taylor_beta(pwets, xscales, tscales, *, L1=25,target_x=0.0001, target_t=24,
-                    origin_x=25, origin_t=24, ninterp = 1000, plot=False):
+def Taylor_beta(pwets, xscales, tscales, *, L1,target_x=0.0001, target_t,
+                    origin_x, origin_t, ninterp = 1000, plot=False):
     '''------------------------------------------------------------------
     Extrapolate the wet fraction of the rainfall fields at small scales
     smaller than the resolution of the gridded precipitation product.
@@ -871,10 +863,6 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
         Cd[ii] = beta * Wd[ii] * (cs / ws) * gamma(1 / ws) / gamma(1 / Wd[ii])
         Nd[ii] = int( np.rint( Ns[ii] / beta)) #Nd[ii] = np.int( np.rint( Ns[ii] / beta))
 
-    # print(Nd)
-    # print(Cd)
-    # print(Wd)
-
     Nd = Nd if not is_scalar else Nd[0]
     Cd = Cd if not is_scalar else Cd[0]
     Wd = Wd if not is_scalar else Wd[0]
@@ -883,8 +871,8 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
 
 
 def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
-                plot=False, tscale=24, save_yearly = True, toll=0.005,
-                maxmiss=36, clat=None, clon=None,
+                plot=False, tscale, save_yearly = True, toll=0.005,
+                maxmiss, clat=None, clon=None,
                 opt_method='genetic'):
     '''------------------------------------------------------------------------
     Downscale a precipitation dataset contained in the x-array xdata.
