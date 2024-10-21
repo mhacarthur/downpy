@@ -478,7 +478,7 @@ def epl_fun(x, epsilon, alpha):
     return  myfun
 
 
-def myacf_2d(x,y, parhat, acf = 'str'):
+def myacf_2d(x,y, parhat, acf): #default acf = 'str'
     '''########################################################################
     set of 2D autocorrelation functions
     INPUTS::
@@ -527,7 +527,7 @@ def grid_corr(xdata, plot=True, thresh=0):
     count = 0
     for i in range(nelem):
         tsi = xdata.loc[dict(lat=lats9[i], lon=lons9[i])].values
-        tsi = np.maximum(tsi-thresh, 0.0)
+        tsi = np.maximum(tsi-thresh, 0.0)# Values less or equal than 0.0 is replaced with 0
         for j in range(i+1, nelem):
             tsj = xdata.loc[dict(lat=lats9[j], lon=lons9[j])].values
             tsj = np.maximum(tsj-thresh, 0.0)
@@ -556,7 +556,7 @@ def grid_corr(xdata, plot=True, thresh=0):
                                             label='Exp.-power law')
         plt.xlabel('distance [Km]')
         plt.ylabel('correlation [-]')
-        plt.ylim([0, 1])
+        plt.ylim([0.5, 1])
         plt.xlim([min(vdist), max(vdist)])
         plt.legend()
         plt.close()
@@ -576,7 +576,7 @@ def nabla_2d(par_acf, myacf, T1, T2, err_min = 1e-2):
         print('integration domain is zero')
         return 0.0 # integral is zero in this case.
     else:
-        fun_XY = lambda x ,y: (T1 - x ) *(T2 - y ) *myacf(x ,y, par_acf)
+        fun_XY = lambda x ,y: (T1 - x ) *(T2 - y ) * myacf(x ,y, par_acf)
         myint, myerr = nquad(fun_XY, [[0. ,T1], [0. ,T2]])
         # if myint != 0.0:
         #     rel_err = myerr /myint
@@ -602,7 +602,7 @@ def fast_corla_2d(par_acf, myacf, Tx, L, err_min=1e-2):
     return covla
 
 
-def myfun_sse(xx, yobs, parhat, L, acf = 'mar'):
+def myfun_sse(xx, yobs, parhat, L, acf):
     xx = np.asarray(xx)
     myacf = lambda x, y, parhat: myacf_2d(x, y, parhat, acf=acf)
     # Ty = np.array([L, 0., L, 0.])
@@ -661,7 +661,7 @@ def bin_ave_corr(vdist, vcorr, toll=0.3, plot=False):
     return res
 
 
-def down_corr(vdist, vcorr, L1, *, acf='mar',
+def down_corr(vdist, vcorr, L1, *, acf,
                 use_ave=True, opt_method = 'genetic', disp=True, toll=0.005,
                 plot=False):
     '''------------------------------------------------------------------------
@@ -691,6 +691,7 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         cc = res_ave['vcorr_ave']
         def myfun(pardown):
             return myfun_sse(dd, cc, pardown, L1, acf=acf)
+
     if opt_method == 'lbfgsb':
         x0 = (50, 1)  # initial guess
         resmin = minimize(myfun, x0, method="L-BFGS-B",
@@ -700,7 +701,6 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         res[parnames[1]] = resmin.x[1]
         res['success'] = resmin.success
         res['fuvval'] = resmin.fun
-
     elif opt_method == 'genetic':
         bounds = [(0.0, 200.0),(0.0, 1.00)]
         resmin = differential_evolution(myfun, bounds, disp=disp,
@@ -716,6 +716,7 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         res[parnames[1]] = np.nan
         res['success'] = False
         res['funval'] = -9999
+
     if plot:
         xx = np.linspace(0.0, 100)
         corrL = int_corr(xx, (res[parnames[0]], res[parnames[1]]), acf, L1)
@@ -755,7 +756,7 @@ def int_corr(xx, parhat, acf, L):
     return corrL
 
 
-def vrf(L, L0, par_acf, acf='mar'):
+def vrf(L, L0, par_acf, acf):
     '''-------------------------------------------------------------
     compute the variance reduction factor
     between scales L (large) and L0 (small)
@@ -781,12 +782,12 @@ def vrf(L, L0, par_acf, acf='mar'):
     # its 2D integral a-la Vanmarcke
     int_XY, abserr   = dblquad(fun_XY,  0.0, L,  lambda x: 0.0, lambda x: L)
     int_XY0, abserr0 = dblquad(fun_XY0, 0.0, L0, lambda x: 0.0, lambda x: L0)
-    # gam  = 4/L**4*int_XY # between scale L and a point
-    gam = (L0 / L) ** 4 * (int_XY / int_XY0)  # between scales L and L0
+    gam  = 4/L**4*int_XY # between scale L and a point
+    # gam = (L0 / L) ** 4 * (int_XY / int_XY0)  # between scales L and L0
     return gam
 
 
-def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
+def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf):
     ''' -----------------------------------------------------------------------
     Downscale Weibull parameters from grid cell scale to a subgrid scale:
     compute the downscaled weibull parameters from a large scale L
@@ -830,6 +831,7 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
     #         return epl_fun(np.sqrt(x ** 2 + y ** 2), parhat[0], parhat[1])
     #     else:
     #         print('down_wei WARNING: insert a valid auto correlation function')
+
     # # compute variance reduction factor
     # fun_XY = lambda x, y: (L - x) * (L - y) * myacf(x, y, par_acf, acf)
     # fun_XY0 = lambda x, y: (L0 - x) * (L0 - y) * myacf(x, y, par_acf, acf)
@@ -839,7 +841,8 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
     # # gam  = 4/L**4*int_XY # between scale L and a point
     # gam = (L0 / L) ** 4 * (int_XY / int_XY0)  # between scales L and L0
     gam = vrf(L, L0, par_acf, acf=acf)
-    # vrf = gam
+    print(f'Gamma value: {gam}')
+
     # prob wet:: correct satellite N adding the average difference
     pws = np.mean(Ns) / 365.25
     Wd = np.zeros(m)
@@ -848,29 +851,31 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf='mar'):
     for ii in range(m):
         cs = Cs[ii]
         ws = Ws[ii]
-        rhs = 1 / gam / beta * (2 * ws * gamma(2 / ws) / (
-                                    gamma(1 / ws)) ** 2 + (gam - 1) * pws)
-        wpfun = lambda w: 2 * w * gamma(2 / w) / (gamma(1 / w)) ** 2 - rhs
+        rhs = (1/(gam*beta)) * (((2*ws*gamma(2 / ws))/((gamma(1/ws))**2)) + (gam-1)*pws)
+        wpfun = lambda w: (2*w*gamma(2 / w)/(gamma(1/w))**2) - rhs
 
-        res = fsolve(wpfun, 0.1, full_output=True,
-                        xtol=1e-06, maxfev=10000)
+        res = fsolve(wpfun, 0.1, full_output=True,xtol=1e-06, maxfev=10000)
+        
         Wd[ii] = res[0]
         info = res[1]
         fval = info['fvec']
         if fval > 1e-5:
             print('warning - downscaling function:: '
                     'there is something wrong solving fsolve!')
-        Cd[ii] = beta * Wd[ii] * (cs / ws) * gamma(1 / ws) / gamma(1 / Wd[ii])
-        Nd[ii] = int( np.rint( Ns[ii] / beta)) #Nd[ii] = np.int( np.rint( Ns[ii] / beta))
+        Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
+        Nd[ii] = int( np.rint( Ns[ii] / beta))
 
+    # If Nd, Cd, Wd are a collection (example, list or array) and not a scalar, 
+    # return all collection.
     Nd = Nd if not is_scalar else Nd[0]
     Cd = Cd if not is_scalar else Cd[0]
     Wd = Wd if not is_scalar else Wd[0]
+
     return Nd, Cd, Wd, gam, fval
 
 
 
-def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
+def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf, dt=3,
                 plot=False, tscale, save_yearly = True, toll=0.005,
                 maxmiss, clat=None, clon=None,
                 opt_method='genetic'):
@@ -1060,7 +1065,7 @@ def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
         res['Taylor_contour'] = taylor['contour']
     return res
 
-def downscale_WITHOUT_PRINT(xdata, Tr, *, thresh=1, L0=0.0001, acf='mar', dt=3,
+def downscale_WITHOUT_PRINT(xdata, Tr, *, thresh=1, L0=0.0001, acf, dt=3,
                 plot=False, tscale=24, save_yearly = True, toll=0.005,
                 maxmiss=36, clat=None, clon=None,
                 opt_method='genetic'):
@@ -1274,7 +1279,7 @@ def remove_missing_years(df, nmin):
     return df, nyears2, nyears1
 
 
-def wei_fit(sample):
+def wei_fit(sample, thresh=1):
     ''' fit a 2-parameters Weibull distribution to a sample
     by means of Probability Weighted Moments (PWM) matching (Greenwood 1979)
     using only observations larger than a value 'threshold' are used for the fit
@@ -1287,7 +1292,7 @@ def wei_fit(sample):
     N represent the number of observations > threshold
     Weibull scale (c) and shape (w) parameters '''
     sample = np.asarray(sample) # from list to Numpy array
-    wets   = sample[sample > 0.0]
+    wets   = sample[sample > thresh]
     x      = np.sort(wets) # sort ascend by default
     M0hat  = np.mean(x)
     M1hat  = 0.0
