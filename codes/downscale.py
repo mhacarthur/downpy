@@ -468,7 +468,7 @@ def epl_fun(x, epsilon, alpha):
         else:
             # silence it if negative parameters -
             # with warnings.simplefilter('ignore', RuntimeWarning):
-            myfun[ii] = (epsilon/np.exp(1)/x[ii])**alpha
+            myfun[ii] = (epsilon/(np.exp(1)*x[ii]))**alpha
             # print('epsilon = ', epsilon)
             # if epsilon < 1e-5 or alpha < 1e-5:
             #     print('epsilon = ', epsilon)
@@ -539,21 +539,21 @@ def grid_corr(xdata, plot=True, thresh=0):
     res['vcorr'] = vcorr
     xx = np.linspace(np.min(vdist), np.max(vdist), 20)
     # fit curves to observed correlation
-    popt, pcov = curve_fit(str_exp_fun, vdist, vcorr, p0=np.array([50, 1]),
-                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+    # popt, pcov = curve_fit(str_exp_fun, vdist, vcorr, p0=np.array([50, 1]),
+    #             bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+    popt, pcov = curve_fit(str_exp_fun, vdist, vcorr)
     res['d0_s']= popt[0]
     res['mu0_s'] = popt[1]
-    popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr, p0=np.array([50, 1]),
-                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+    # popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr, p0=np.array([50, 1]),
+    #             bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+    popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr)
     res['eps_s'] = popt1[0]
     res['alp_s'] = popt1[1]
     if plot:
         fig = plt.figure()
         plt.plot(vdist, vcorr, 'o', label='empirical')
-        plt.plot(xx, str_exp_fun(xx, res['d0_s'], res['mu0_s']), 'r',
-                                            label='Stretched exp.')
-        plt.plot(xx, epl_fun(xx, res['eps_s'], res['alp_s']), 'g',
-                                            label='Exp.-power law')
+        plt.plot(xx, str_exp_fun(xx, res['d0_s'], res['mu0_s']), 'r', label='Stretched exp.')
+        plt.plot(xx, epl_fun(xx, res['eps_s'], res['alp_s']), 'g', label='Exp.-power law')
         plt.xlabel('distance [Km]')
         plt.ylabel('correlation [-]')
         plt.ylim([0.5, 1])
@@ -873,6 +873,45 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf):
 
     return Nd, Cd, Wd, gam, fval
 
+# ==================================================================================
+def down_wei_ART(Ns, Cs, Ws, beta, gam):
+    Ns = np.asarray(Ns)
+    Cs = np.asarray(Cs)
+    Ws = np.asarray(Ws)
+
+    is_scalar = False if Cs.ndim > 0 else True
+    Ns.shape = (1,) * (1 - Ns.ndim) + Ns.shape
+    Cs.shape = (1,) * (1 - Cs.ndim) + Cs.shape
+    Ws.shape = (1,) * (1 - Ws.ndim) + Ws.shape
+    m = Cs.shape[0]  
+
+    pws = np.mean(Ns) / 365.25
+    Wd = np.zeros(m)
+    Cd = np.zeros(m)
+    Nd = np.zeros(m)
+    for ii in range(m):
+        cs = Cs[ii]
+        ws = Ws[ii]
+        rhs = (1/(gam*beta)) * (((2*ws*gamma(2 / ws))/((gamma(1/ws))**2)) + (gam-1)*pws)
+        wpfun = lambda w: (2*w*gamma(2 / w)/(gamma(1/w))**2) - rhs
+
+        res = fsolve(wpfun, 0.1, full_output=True,xtol=1e-06, maxfev=10000)
+
+        Wd[ii] = res[0]
+        info = res[1]
+        fval = info['fvec']
+        if fval > 1e-5:
+            print('warning - downscaling function:: '
+                    'there is something wrong solving fsolve!')
+        Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
+        Nd[ii] = int( np.rint( Ns[ii] / beta))
+
+    Nd = Nd if not is_scalar else Nd[0]
+    Cd = Cd if not is_scalar else Cd[0]
+    Wd = Wd if not is_scalar else Wd[0]
+
+    return Nd, Cd, Wd
+# ==================================================================================
 
 
 def downscale(xdata, Tr, *, thresh=1, L0=0.0001, acf, dt=3,
