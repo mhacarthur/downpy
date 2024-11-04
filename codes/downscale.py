@@ -478,7 +478,7 @@ def epl_fun(x, epsilon, alpha):
     return  myfun
 
 
-def myacf_2d(x,y, parhat, acf): #default acf = 'str'
+def myacf_2d(x, y, parhat, acf): #default acf = 'str'
     '''########################################################################
     set of 2D autocorrelation functions
     INPUTS::
@@ -489,8 +489,6 @@ def myacf_2d(x,y, parhat, acf): #default acf = 'str'
                 WITH PARAMETERS: scale d0 and shape mu
             acf = 'mar': Marani 2003 exponential kernel + power law tail
                 WITH PARAMETERS: transition point epsilon and shape alpha
-            acf 'exp': 2d exponential function
-                WITH PARAMETERS: a and b --> scale in x and y axis respectively
     OUTPUTS::
         value of the ACF at a point
     ########################################################################'''
@@ -566,6 +564,7 @@ def grid_corr(xdata, plot=True, thresh=0):
 
 def nabla_2d(par_acf, myacf, T1, T2, err_min = 1e-2):
     '''########################################################################
+    EQUATION 13
     Compute the variance function as in Vanmarcke's book.
     INPUTS::
         par_acf = tuple with the parameters of the autocorr function (ACF)
