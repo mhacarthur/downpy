@@ -1317,7 +1317,7 @@ def remove_missing_years(df, nmin):
     return df, nyears2, nyears1
 
 
-def wei_fit(sample, thresh=1):
+def wei_fit(sample, thresh=0):
     ''' fit a 2-parameters Weibull distribution to a sample
     by means of Probability Weighted Moments (PWM) matching (Greenwood 1979)
     using only observations larger than a value 'threshold' are used for the fit
@@ -1357,6 +1357,7 @@ def mev_fit(df, thresh=1):
     for iy, year in enumerate(years):
         sample = df['PRCP'].values[df['YEAR']==year]
         excesses = sample[sample > thresh] - thresh
+        # excesses = sample[sample > thresh]
         Ni = np.size(excesses)
         if Ni == 0:
             N[iy] = 0
@@ -1418,7 +1419,7 @@ def mev_quant(Fi, x0, N, C, W, thresh=1):
     return quant, flags
 
 
-def fit_yearly_weibull(xdata, thresh=1, maxmiss=36):
+def fit_yearly_weibull(xdata, thresh=0, maxmiss=36):
     nobsmin = 366 - maxmiss
     yearsall = xdata.time.dt.year.values
     years = np.unique(yearsall)
@@ -1430,6 +1431,7 @@ def fit_yearly_weibull(xdata, thresh=1, maxmiss=36):
         sample = xdata.sel(time=str(years[i]))
         NOBS[i] = np.size(sample)
         excesses = sample[sample > thresh] - thresh
+        # excesses = sample[sample > thresh]
         Ni = np.size(excesses)
         if Ni == 0:
             # NCW[i, :] = np.array([0, np.nan, np.nan])
