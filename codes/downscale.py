@@ -1204,11 +1204,7 @@ def downscale_WITHOUT_PRINT(xdata, Tr, *, thresh=1, L0=0.0001, acf, dt=3,
 
 ################################################################################
 
-
-
 ###################### EXTREME VALUE ANALYSIS FUNCTIONS ########################
-
-
 
 ################################################################################
 
@@ -1429,17 +1425,18 @@ def fit_yearly_weibull(xdata, thresh=0, maxmiss=36):
     YEARS = np.zeros(nyears0)
     for i in range(nyears0):
         sample = xdata.sel(time=str(years[i]))
-        NOBS[i] = np.size(sample)
+        NOBS[i] = len(sample[sample>=0])
         excesses = sample[sample > thresh] - thresh
         # excesses = sample[sample > thresh]
         Ni = np.size(excesses)
         if Ni == 0:
-            # NCW[i, :] = np.array([0, np.nan, np.nan])
-            NCW[i, :] = np.array([0, 1E-9, 1.0])
+            NCW[i, :] = np.array([0, np.nan, np.nan])
+            # NCW[i, :] = np.array([0, 1E-9, 1.0])
         elif Ni == 1:
-            what = 0.7 # Prior belief on shape parameter
-            chat = excesses[0]/gamma(1 + 1/what)
-            NCW[i, :] = np.array([1.0, chat, what])
+            # what = 0.7 # Prior belief on shape parameter
+            # chat = excesses[0]/gamma(1 + 1/what)
+            # NCW[i, :] = np.array([1.0, chat, what])
+            NCW[i, :] = np.array([0, np.nan, np.nan])
         else:
             NCW[i,:] = wei_fit(excesses)
         YEARS[i] = years[i]
@@ -1447,3 +1444,58 @@ def fit_yearly_weibull(xdata, thresh=0, maxmiss=36):
     NCW = NCW[cond]
     YEARS = YEARS[cond]
     return NCW, YEARS
+
+################################################################################
+
+############################### UPDATES FUNCTIONS ##############################
+
+################################################################################
+
+def wei_fit_update(sample):
+    sample = np.asarray(sample) # from list to Numpy array
+    x      = np.sort(sample) # sort ascend by default
+    M0hat  = np.mean(x)
+    M1hat  = 0.0
+    n      = x.size # sample size
+    for ii in range(n):
+        real_ii = ii + 1
+        M1hat   = M1hat + x[ii]*(n - real_ii)
+    M1hat = M1hat/(n*(n-1))
+    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
+    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
+    return  n, c, w
+
+def fit_yearly_weibull_update(xdata, thresh=0, maxmiss=36):
+    '''
+    This Function computes the Weibull fit parameters for each year in the data.
+    Return NCW matrix [WET_DAYS (N), SCALE (S), SHAPE (W), YEARS]
+    '''
+    OBS_min = 366 - maxmiss
+    years = np.unique(xdata.time.dt.year.values)
+    years_num = np.size(years)
+
+    NCW = np.zeros((years_num, 4))
+    NOBS = np.zeros(years_num)
+
+    for i, yy in enumerate(years):
+        sample = xdata.sel(time=str(yy))
+        NOBS[i] = len(sample[sample>=0])
+        
+        if NOBS[i] < OBS_min:
+            NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+            NCW[i,3] = yy
+
+        else:
+            excesses = sample[sample > thresh] - thresh
+            Ni = np.size(excesses)
+            if Ni == 0:
+                NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+                NCW[i,3] = yy
+            elif Ni == 1:
+                NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+                NCW[i,3] = yy
+            else:
+                NCW[i, 0:3] = wei_fit_update(excesses)
+                NCW[i,3] = yy
+
+    return NCW
