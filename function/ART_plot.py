@@ -2,6 +2,8 @@ import os
 import numpy as np
 import geopandas as gpd
 
+from scipy import stats
+
 import cartopy
 import cartopy.feature as cf
 import cartopy.crs as ccrs
@@ -215,6 +217,47 @@ def plot_autocorrelation(vdist, vcorr, FIT_eps, FIT_alp, FIT_d0, FIT_mu0, nameou
     ax1.set_ylabel('correlation [-]', fontsize=6)
 
     # ================================================================================================
+    ax1.set_facecolor('white')
+    fig.patch.set_alpha(0)
+
+    if save == True:
+        print(f'Export as: {nameout}')
+        plt.savefig(nameout,transparent = False,bbox_inches ='tight',pad_inches = 0.01, facecolor=None)
+
+def plot_scatter(OBS, IMERG, station_name, nameout, save=False):
+    fig = plt.figure(figsize=(4,4),dpi=300)
+    gs = gridspec.GridSpec(1,1)
+    ax1 = plt.subplot(gs[0, 0])
+    mask = ~np.isnan(OBS) & ~np.isnan(IMERG)
+    OBS_clear = OBS[mask]
+    IMERG_clear = IMERG[mask]
+
+    min_val = np.fmin(np.nanmin(OBS_clear), np.nanmin(IMERG_clear))
+    max_val = np.fmax(np.nanmax(OBS_clear), np.nanmax(IMERG_clear))
+    x_vals = np.linspace(min_val, max_val, 100)
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(OBS_clear, IMERG_clear)
+    y_vals = slope * x_vals + intercept
+
+    ax1.scatter(OBS_clear, IMERG_clear, s=1, label='Scatter')
+    
+    ax1.plot(x_vals, y_vals, 'r--', linewidth=0.6, label=f'Linear Regression')
+    ax1.plot(x_vals,x_vals,'-', linewidth=0.6, c='k', label='Identity line')
+
+    ax1.xaxis.set_tick_params(labelsize=5)
+    ax1.yaxis.set_tick_params(labelsize=5)
+    ax1.set_xlim(right=max_val + 10)
+    ax1.set_ylim(top=max_val + 10)
+
+    ax1.legend(fontsize=6, ncol=1)
+    ax1.grid(linewidth=0.3, linestyle='--')
+
+    ax1.set_xlabel('OBS', fontsize=5)
+    ax1.set_ylabel('IMERG', fontsize=5)
+
+    ax1.set_title('Scatter Plot for OBS and IMERG', fontsize=7, loc='left')
+    ax1.set_title(f'{station_name}',loc='right',fontsize=7)
+    
     ax1.set_facecolor('white')
     fig.patch.set_alpha(0)
 

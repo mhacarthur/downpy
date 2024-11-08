@@ -317,3 +317,43 @@ def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf):
 
     return Nd, Cd, Wd, gam, fval
 
+def down_wei_beta_alpha(Ns, Cs, Ws, beta, gam):
+    Ns = np.asarray(Ns)  # check if scalar input - should be the same for N,C,W
+    Cs = np.asarray(Cs)
+    Ws = np.asarray(Ws)
+    # the three parameter mush have same shape - I only check one here
+    is_scalar = False if Cs.ndim > 0 else True
+    Ns.shape = (1,) * (1 - Ns.ndim) + Ns.shape
+    Cs.shape = (1,) * (1 - Cs.ndim) + Cs.shape
+    Ws.shape = (1,) * (1 - Ws.ndim) + Ws.shape
+    m = Cs.shape[0]  # length of parameter arrays = number of blocks=
+
+    # prob wet:: correct satellite N adding the average difference
+    pws = np.mean(Ns) / 365.25
+    Wd = np.zeros(m)
+    Cd = np.zeros(m)
+    Nd = np.zeros(m)
+    for ii in range(m):
+        cs = Cs[ii]
+        ws = Ws[ii]
+        rhs = (1/(gam*beta)) * (((2*ws*gamma(2 / ws))/((gamma(1/ws))**2)) + (gam-1)*pws)
+        wpfun = lambda w: (2*w*gamma(2 / w)/(gamma(1/w))**2) - rhs
+
+        res = fsolve(wpfun, 0.1, full_output=True,xtol=1e-06, maxfev=10000)
+        
+        Wd[ii] = res[0]
+        info = res[1]
+        fval = info['fvec']
+        if fval > 1e-5:
+            print('warning - downscaling function:: '
+                    'there is something wrong solving fsolve!')
+        Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
+        Nd[ii] = int( np.rint( Ns[ii] / beta))
+
+    # If Nd, Cd, Wd are a collection (example, list or array) and not a scalar, 
+    # return all collection.
+    Nd = Nd if not is_scalar else Nd[0]
+    Cd = Cd if not is_scalar else Cd[0]
+    Wd = Wd if not is_scalar else Wd[0]
+
+    return Nd, Cd, Wd
