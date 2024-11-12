@@ -18,7 +18,7 @@ def wei_fit_update(sample):
     w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
     return  n, c, w
 
-def fit_yearly_weibull_update(xdata, thresh=0, maxmiss=36):
+def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
     '''
     This Function computes the Weibull fit parameters for each year in the data.
     Return NCW matrix [WET_DAYS (N), SCALE (S), SHAPE (W), YEARS]
@@ -33,22 +33,22 @@ def fit_yearly_weibull_update(xdata, thresh=0, maxmiss=36):
     for i, yy in enumerate(years):
         sample = xdata.sel(time=str(yy))
         NOBS[i] = len(sample[sample>=0])
-        
+
         if NOBS[i] < OBS_min:
-            NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+            NCW[i,0:3] = np.array([0, np.nan, np.nan])
             NCW[i,3] = yy
 
         else:
             excesses = sample[sample > thresh] - thresh
             Ni = np.size(excesses)
             if Ni == 0:
-                NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+                NCW[i,0:3] = np.array([0, np.nan, np.nan])
                 NCW[i,3] = yy
             elif Ni == 1:
-                NCW[i, 0:3] = np.array([0, np.nan, np.nan])
+                NCW[i,0:3] = np.array([0, np.nan, np.nan])
                 NCW[i,3] = yy
             else:
-                NCW[i, 0:3] = wei_fit_update(excesses)
+                NCW[i,0:3] = wei_fit_update(excesses)
                 NCW[i,3] = yy
 
     return NCW
@@ -244,8 +244,14 @@ def vrf(L, L0, par_acf, acf):
     # its 2D integral a-la Vanmarcke
     int_XY, abserr   = dblquad(fun_XY,  0.0, L,  lambda x: 0.0, lambda x: L)
     int_XY0, abserr0 = dblquad(fun_XY0, 0.0, L0, lambda x: 0.0, lambda x: L0)
-    gam  = 4/L**4*int_XY # between scale L and a point
+
+    # gam  = 4/L**4 * int_XY # between scale L and a point
     # gam = (L0 / L) ** 4 * (int_XY / int_XY0)  # between scales L and L0
+    if L0 == 0:
+        gam = 4/L**4 * int_XY
+    else:
+        gam = (L0 / L)** 4 * (int_XY / int_XY0) 
+    
     return gam
 
 def down_wei(Ns, Cs, Ws, L, L0, beta, par_acf, acf):

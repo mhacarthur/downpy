@@ -19,7 +19,18 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
-def create_box(DATA_INPUT, clat, clon, npix):
+def area_lat_lon(lat_c, lon_c, dlat, dlon):
+    lat1 = lat_c - dlat/2
+    lat2 = lat_c + dlat/2
+    lon1 = lon_c - dlon/2
+    lon2 = lon_c + dlon/2
+    hor_size = haversine(lat1, lon1, lat1, lon2)
+    vert_size = haversine(lat1, lon1, lat2, lon1)
+    my_area = hor_size*vert_size
+    my_edge = np.sqrt(my_area)
+    return my_edge, my_area, hor_size, vert_size
+
+def create_box(DATA_INPUT, clat, clon, npix, reso):
     lats = DATA_INPUT['lat'].data
     lons = DATA_INPUT['lon'].data
     time_vector = DATA_INPUT['time'].values
@@ -29,7 +40,7 @@ def create_box(DATA_INPUT, clat, clon, npix):
 
     xrs = xr.DataArray(np.swapaxes(dset, 0, 2),  coords={'lon':lons, 'lat':lats, 'time':time_vector}, dims=('lon', 'lat', 'time'))
 
-    buffer = 0.5*npix*0.1 # To define the limitis of box_3h
+    buffer = 0.5*npix*reso # To define the limitis of box_3h
     eps = 1e-4 # to make sure to include limtis -> add an eps buffer
     solat = clat - buffer + eps
     nolat = clat + buffer + eps
@@ -178,9 +189,9 @@ def wet_matrix_extrapolation(WET_MATRIX, spatial_scale, temporal_scale, L1, npix
     
     return WET_MATRIX_EXTRA, new_spatial_scale
 
-def autocorrelation_neighborhood(box_3h, cor_method = 'spearman'):
+def autocorrelation_neighborhood(box_3h, t_target, thresh, cor_method = 'spearman'):
 
-    xdaily = box_3h.resample(time ='{}h'.format(24)).sum(dim='time', skipna=False).dropna(dim='time', how='any')
+    xdaily = box_3h.resample(time ='{}h'.format(t_target)).sum(dim='time', skipna=False).dropna(dim='time', how='any')
     lats = xdaily.dropna(dim='time', how='any').lat.values
     lons = xdaily.dropna(dim='time', how='any').lon.values
     nlats = np.size(lats)
@@ -197,8 +208,10 @@ def autocorrelation_neighborhood(box_3h, cor_method = 'spearman'):
 
     for i in range(nelem):
         tsi = xdaily.dropna(dim='time', how='any').loc[dict(lat=lats9[i], lon=lons9[i])].values
+        tsi = np.maximum(tsi-thresh, 0.0)
         for j in range(i+1, nelem):
             tsj = xdaily.dropna(dim='time', how='any').loc[dict(lat=lats9[j], lon=lons9[j])].values
+            tsj = np.maximum(tsj-thresh, 0.0)
             vdist[count] = haversine(lats9[i], lons9[i], lats9[j], lons9[j])
             if cor_method == 'spearman':
                 vcorr[count], _ = spearmanr(tsi, tsj)
