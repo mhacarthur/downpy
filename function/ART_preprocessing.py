@@ -1,5 +1,6 @@
-
+import os
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from scipy.stats import pearsonr
@@ -19,7 +20,7 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
-def haversine_zorzeto(lat1, lat2, lon1, lon2, convert_to_rad=True):
+def haversine_zorzeto(lat1, lon1, lat2, lon2, convert_to_rad=True):
     def torad(theta):
         return theta*np.pi/180.0
     if convert_to_rad:
@@ -233,3 +234,56 @@ def autocorrelation_neighborhood(box_3h, t_target, thresh, cor_method = 'spearma
     distance_vector = np.linspace(np.min(vdist), np.max(vdist), 40)
 
     return vdist, vcorr, distance_vector
+
+def spatial_correlation(DF_input, threshold, dir_base, cor_method):
+    count = 0
+    correlation = []
+    distance = []
+    names1 = []
+    names2 = []
+
+    for ii in range(len(DF_input)):
+        serie1 = pd.read_csv(os.path.join(dir_base, 'CLEAR_1dy', f'{DF_input['File_Name'].values[ii]}.csv'))
+        serie1['TIME'] = pd.to_datetime(serie1['TIME'])
+        pos1 = ([DF_input['Lat'].values[ii], DF_input['Lon'].values[ii]])
+        name1 = DF_input['File_Name'].values[ii]
+
+        for jj in range(count, len(DF_input)):
+            if jj == ii:
+                pass
+            else:
+                serie2 = pd.read_csv(os.path.join(dir_base, 'CLEAR_1dy', f'{DF_input['File_Name'].values[jj]}.csv'))
+                serie2['TIME'] = pd.to_datetime(serie2['TIME'])
+                pos2 = ([DF_input['Lat'].values[jj], DF_input['Lon'].values[jj]])
+                name2 = DF_input['File_Name'].values[jj]
+
+                names1.append(name1)
+                names2.append(name2)
+
+                df_common = pd.merge(serie1, serie2, on='TIME', suffixes=('_series1', '_series2'))
+                df_common_no_nan = df_common.dropna(subset=['PRE_series1', 'PRE_series2'])
+                
+                tsi = np.maximum(df_common_no_nan['PRE_series1'].values-threshold, 0.0)
+                tsj = np.maximum(df_common_no_nan['PRE_series2'].values-threshold, 0.0)
+                # print(len(tsi), len(tsj))
+
+                if len(tsi) <= 1 or len(tsi) <= 1:
+                    corr = np.nan
+                else:
+                    if cor_method == 'spearman':
+                        corr, _ = spearmanr(tsi, tsj)
+                    elif cor_method == 'pearson':
+                        corr, _ = pearsonr(tsi, tsj)
+
+                correlation.append(corr)
+
+                # dist = haversine(pos1[0], pos1[1], pos2[0], pos2[1])
+                dist = haversine_zorzeto(pos1[0], pos1[1], pos2[0], pos2[1])
+                distance.append(dist)
+
+        count = count + 1
+
+    CORR_DF = pd.DataFrame({'name1': names1, 'name2':names2, 'dist':distance, 'corr':correlation})
+    CORR_DF = CORR_DF.sort_values(by='dist').reset_index(drop=True)
+    
+    return CORR_DF
