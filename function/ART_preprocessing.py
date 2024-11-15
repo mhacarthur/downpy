@@ -19,6 +19,21 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
+def haversine_zorzeto(lat1, lat2, lon1, lon2, convert_to_rad=True):
+    def torad(theta):
+        return theta*np.pi/180.0
+    if convert_to_rad:
+        lat1 = torad(lat1)
+        lat2 = torad(lat2)
+        lon1 = torad(lon1)
+        lon2 = torad(lon2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    R = 6371.0 # km
+    a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
+    dist = 2*R*np.arctan2( np.sqrt(a), np.sqrt(1-a))
+    return dist
+
 def area_lat_lon(lat_c, lon_c, dlat, dlon):
     lat1 = lat_c - dlat/2
     lat2 = lat_c + dlat/2
@@ -92,7 +107,6 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                     for j in range(nlat):
                         wet_tmp[i,j] = wetfrac(input_data[i,j,:].data, thresh)
                         rain_tmp[i,j] = input_data[i,j,:].data
-                # print(wet_tmp.mean())
                 rainfall_ref.append(np.mean(rain_tmp,axis=(0,1)))
                 Swet_final.append(wet_tmp.mean())
                 Swet_scale.append(L1)
@@ -101,7 +115,6 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                 print(f'Mean wet fraction for scale: {L1*smax} km')
                 rainfall_tmp = input_data.mean(axis=(0,1))
                 wet_tmp = wetfrac(rainfall_tmp, thresh)
-                # print(wet_tmp)
                 rainfall_ref.append(rainfall_tmp.data)
                 Swet_final.append(wet_tmp)
                 Swet_scale.append(L1*smax)
@@ -114,11 +127,9 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                     for i in range(nlon):
                         for j in range(nlat):
 
-                            if CONDITION == 'OVERLEAP':
-                                # WITH OVERLAP
+                            if CONDITION == 'OVERLEAP': # WITH OVERLAP
                                 box_tmp = input_data[i:i+sx,j:j+sx,:]
-                            elif CONDITION == 'NONOVERLAP':
-                                # WITHOUT OVERLAP
+                            elif CONDITION == 'NONOVERLAP': # WITHOUT OVERLAP
                                 box_tmp = input_data[sx*i:sx*i+sx,sx*j:sx*j+sx,:]
 
                             if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
@@ -140,7 +151,7 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                                 box_tmp = input_data[origin_x_pos:origin_x_pos+2*L,origin_y_pos:origin_y_pos+2*L]
                             wet_tmp = wetfrac(box_tmp.mean(axis=(0,1)).data, thresh)
                             Swet_fraction.append(wet_tmp)
-                    
+
                     elif sx == 4:
                         for loop in range(4):
                             if loop == 0:
@@ -164,7 +175,7 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
         print()
 
     WET_MATRIX = np.reshape(Swet_final,(10,npix))
-    
+
     return WET_MATRIX
 
 def wet_matrix_extrapolation(WET_MATRIX, spatial_scale, temporal_scale, L1, npix):
