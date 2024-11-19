@@ -274,6 +274,10 @@ def spatial_correlation(DF_input, threshold, dir_base, cor_method):
                         corr, _ = spearmanr(tsi, tsj)
                     elif cor_method == 'pearson':
                         corr, _ = pearsonr(tsi, tsj)
+                    else:
+                        # print(f'ERROR method {cor_method} not found')
+                        raise ValueError(f"Unsupported correlation type '{cor_method}'. Please use 'pearson' or 'spearman'.")
+
 
                 correlation.append(corr)
 
