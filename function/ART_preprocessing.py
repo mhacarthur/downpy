@@ -91,17 +91,17 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
     rainfall_ref = []
     Swet_final = []
     Swet_scale = []
-    print(f'Using condition: {CONDITION}')
-    print()
+    # print(f'Scales agregation condition: {CONDITION}')
+    # print()
     for st in tscales:
         datamat = box_3h.resample(time='{}h'.format(st)).sum(dim='time', skipna = False)
 
         input_data = datamat.copy()
 
-        print(f'Agregation for time scale: {st} hours')
+        # print(f'Agregation for time scale: {st} hours')
         for ix, sx in enumerate(xscales):
             if sx == 1:
-                print(f'Mean wet fraction for scale: {L1} km')
+                # print(f'Mean wet fraction for scale: {L1} km')
                 rain_tmp = np.zeros([nlon, nlat, input_data.shape[2]])
                 wet_tmp = np.zeros([nlon, nlat])
                 for i in range(nlon):
@@ -113,7 +113,7 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                 Swet_scale.append(L1)
 
             elif sx == smax:
-                print(f'Mean wet fraction for scale: {L1*smax} km')
+                # print(f'Mean wet fraction for scale: {L1*smax} km')
                 rainfall_tmp = input_data.mean(axis=(0,1))
                 wet_tmp = wetfrac(rainfall_tmp, thresh)
                 rainfall_ref.append(rainfall_tmp.data)
@@ -121,7 +121,7 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                 Swet_scale.append(L1*smax)
             
             elif sx > 1 and sx < smax:
-                print(f'Mean wet fraction for scale: {L1*sx} km')
+                # print(f'Mean wet fraction for scale: {L1*sx} km')
                 Swet_fraction = []
 
                 if CONDITION == 'OVERLEAP' or CONDITION == 'NONOVERLAP':
@@ -173,7 +173,8 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
                 rainfall_ref.append(box_tmp.sum(axis=(0,1)).data) # Rainfall series
                 Swet_final.append(np.mean(Swet_fraction)) # wet fraction
                 Swet_scale.append(L1*sx) # Spatial scales
-        print()
+        # print()
+    # print()
 
     WET_MATRIX = np.reshape(Swet_final,(10,npix))
 
