@@ -438,3 +438,12 @@ def ART_downscalling(DATA_in, lats, lons, lat_c, lon_c, PARAM):
     dict_out = dict({'beta':beta, 'gamma':gamYd, 'param1':param1, 'param2':param2})
 
     return IMERG_WEIBULL_YEAR, DOWN_WEIBULL_YY, dict_out
+
+def relative_error(data1, data2):
+    ii, jj = data1.shape[0], data1.shape[1]
+    ERROR = np .zeros([ii, jj])*np.nan
+    for i in range(ii):
+        for j in range(jj):
+            diff = (data1[i,j] - data2[i,j])/data1[i,j]
+            ERROR[i,j] = diff
+    return ERROR

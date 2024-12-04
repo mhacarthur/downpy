@@ -412,3 +412,55 @@ def mev_quant(Fi, x0, N, C, W, thresh=1):
     flags = flags[0] if is_scalar else flags
 
     return quant, flags
+
+def pre_quantiles(data_in, Tr, lat, lon, dic_in, thresh):
+    Fi = 1 - 1/Tr
+    
+    QUANTILE = np.zeros([len(Tr), len(lat), len(lon)])*np.nan
+
+    for i in range(len(lat)):
+        for j in range(len(lon)):
+            data_tmp = data_in[dic_in['SC']][:,i,j].values
+            x0 = 9.0*np.nanmean(data_tmp)
+            if np.isnan(data_tmp).sum() == len(data_tmp):
+                continue
+            else:
+                quant = mev_quant(Fi, x0, 
+                                data_in[dic_in['WD']][:,i,j].values, 
+                                data_in[dic_in['SC']][:,i,j].values, 
+                                data_in[dic_in['SH']][:,i,j].values,
+                                thresh=thresh)[0]
+                QUANTILE[:,i,j] = quant
+
+    return QUANTILE
+
+def quantile_correction(obs, model):
+    """
+    Perform quantile mapping to correct the model data based on observed data distribution.
+
+    Parameters:
+    - obs: 1D array of observed data
+    - model: 1D array of model data
+
+    Returns:
+    - corrected_model: 1D array of corrected model data
+    """
+    # Remove NaN values if present
+    obs = obs[~np.isnan(obs)]
+    model = model[~np.isnan(model)]
+
+    # Compute the sorted observed data and model data
+    obs_sorted = np.sort(obs)
+    model_sorted = np.sort(model)
+
+    # Compute the quantiles
+    obs_cdf = np.linspace(0, 1, len(obs_sorted))
+    model_cdf = np.linspace(0, 1, len(model_sorted))
+
+    # Interpolate the observed CDF values at the model's CDF positions
+    corrected_model = np.interp(
+        np.interp(model, model_sorted, model_cdf),  # Interpolate model values to their CDF
+        obs_cdf, obs_sorted  # Interpolate the model's CDF to the observed data
+    )
+
+    return corrected_model
