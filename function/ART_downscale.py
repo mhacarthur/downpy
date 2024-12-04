@@ -1,4 +1,4 @@
-
+import scipy
 import numpy as np
 from scipy.special import gamma
 from scipy.integrate import dblquad, nquad
@@ -363,3 +363,52 @@ def down_wei_beta_alpha(Ns, Cs, Ws, beta, gam):
     Wd = Wd if not is_scalar else Wd[0]
 
     return Nd, Cd, Wd
+
+def mev_fun(y, pr, N, C, W):
+    ''' MEV distribution function, to minimize numerically
+    for computing quantiles
+    Updated version, to include accounting for dry years with 0 events'''
+    nyears = N.size
+    # mev0f = numzero + np.sum( ( 1-np.exp(-(y/Cn)**Wn ))**Nn) - nyears*pr
+    mev0f = np.sum( ( 1-np.exp(-(y/C)**W ))**N) - nyears*pr
+    return mev0f
+
+def mev_quant(Fi, x0, N, C, W, thresh=1):
+    import numpy as np
+    import scipy.optimize
+
+    # Ensure Fi is an array
+    Fi = np.asarray(Fi)
+
+    # Check if Fi is a scalar
+    is_scalar = Fi.ndim == 0
+
+    # Reshape Fi to handle scalars consistently
+    Fi.shape = (1,) * (1 - Fi.ndim) + Fi.shape
+    m = np.size(Fi)
+    quant = np.zeros(m)
+    flags = np.zeros(m, dtype=bool)  # Flag for the convergence of numerical solver
+
+    for ii in range(m):
+        # Define the function to solve
+        myfun = lambda y: mev_fun(y, Fi[ii], N, C, W)
+        
+        # Use fsolve to find the root
+        res = scipy.optimize.fsolve(myfun, x0, full_output=True)
+        quant[ii] = res[0] if np.ndim(res[0]) == 0 else res[0].item()  # Ensure res[0] is scalar
+        info = res[1]
+        fval = info['fvec']
+        
+        # Check for convergence issues
+        if fval > 1e-5:
+            print('mev_quant:: ERROR - fsolve does not work - change x0')
+            flags[ii] = True
+
+    # Add the threshold to the quantile
+    quant += thresh
+
+    # Return as scalar if the input was scalar
+    quant = quant[0] if is_scalar else quant
+    flags = flags[0] if is_scalar else flags
+
+    return quant, flags
