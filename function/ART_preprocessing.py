@@ -14,7 +14,6 @@ from pathos.multiprocessing import ProcessingPool as Pool
 import sys
 sys.path.insert(0, os.path.abspath("../function"))
 from ART_downscale import fit_yearly_weibull_update, compute_beta, myfun_sse, down_wei
-# from ART_preprocessing import haversine, create_box, space_time_scales_agregations, wet_matrix_extrapolation, autocorrelation_neighborhood
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0 # Earth radius in kilometers
