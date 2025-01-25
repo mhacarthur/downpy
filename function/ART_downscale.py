@@ -464,3 +464,15 @@ def quantile_correction(obs, model):
     )
 
     return corrected_model
+
+def gamma_manual(Ns, Cs, Ws, L, L0, par_acf, acf):
+    Ns = np.asarray(Ns)  # check if scalar input - should be the same for N,C,W
+    Cs = np.asarray(Cs)
+    Ws = np.asarray(Ws)
+    # the three parameter mush have same shape - I only check one here
+    is_scalar = False if Cs.ndim > 0 else True
+    Ns.shape = (1,) * (1 - Ns.ndim) + Ns.shape
+    Cs.shape = (1,) * (1 - Cs.ndim) + Cs.shape
+    Ws.shape = (1,) * (1 - Ws.ndim) + Ws.shape
+    gam = vrf(L, L0, par_acf, acf=acf)
+    return gam
