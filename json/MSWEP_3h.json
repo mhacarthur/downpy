@@ -23,5 +23,5 @@
     "acf": "mar",
     "corr_method":"pearson",
     "BETA_cores": 20,
-    "GAMMA_cores": 5
+    "GAMMA_cores": 27
 }

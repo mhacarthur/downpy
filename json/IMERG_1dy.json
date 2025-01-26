@@ -3,7 +3,7 @@
 
     "L1":10,
     "radio":0.1,
-    "npix":3,
+    "npix":7,
     "thresh": 1,
 
     "maxmiss":40,
@@ -22,6 +22,6 @@
 
     "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 20,
-    "GAMMA_cores": 5
+    "BETA_cores": 8,
+    "GAMMA_cores": 27
 }
