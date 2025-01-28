@@ -1,5 +1,6 @@
 import scipy
 import numpy as np
+import xarray as xr
 from scipy.special import gamma
 from scipy.integrate import dblquad, nquad
 from scipy.optimize import curve_fit, minimize, fsolve
@@ -434,6 +435,32 @@ def pre_quantiles(data_in, Tr, lat, lon, dic_in, thresh):
 
     return QUANTILE
 
+def pre_quantiles_array(N, C, W, Tr, lat, lon, thresh):
+    '''
+    New version of pre_quantiles
+    Compute quantiles using weibull parameter arrays (N, C, W)
+    '''
+    Tr = np.array(Tr)
+    Fi = 1 - 1/Tr
+    
+    QUANTILE = np.zeros([len(Tr), len(lat), len(lon)])*np.nan
+
+    for i in range(len(lat)):
+        for j in range(len(lon)):
+            data_tmp = C[:,i,j]
+            x0 = 9.0*np.nanmean(data_tmp)
+            if np.isnan(data_tmp).sum() == len(data_tmp):
+                continue
+            else:
+                quant = mev_quant(Fi, x0, 
+                                N[:,i,j], 
+                                C[:,i,j], 
+                                W[:,i,j],
+                                thresh=thresh)[0]
+                QUANTILE[:,i,j] = quant
+
+    return QUANTILE
+
 def quantile_correction(obs, model):
     """
     Perform quantile mapping to correct the model data based on observed data distribution.
@@ -476,3 +503,36 @@ def gamma_manual(Ns, Cs, Ws, L, L0, par_acf, acf):
     Ws.shape = (1,) * (1 - Ws.ndim) + Ws.shape
     gam = vrf(L, L0, par_acf, acf=acf)
     return gam
+
+def weibull_year_parameters(DATA_in, lat_c, lon_c, thresh, maxmiss):
+    lats = DATA_in['lat'].data
+    lons = DATA_in['lon'].data
+
+    i_ = np.where(lats==lat_c)[0][0]
+    j_ = np.where(lons==lon_c)[0][0]
+
+    IMERG_pixel_1dy = DATA_in['PRE'][:,i_,j_].data
+    IMERG_pixel_1dy_xr = xr.DataArray(
+                IMERG_pixel_1dy, 
+                coords={'time':DATA_in['time'].values}, 
+                dims=('time'))
+
+    WEIBULL_YEAR = fit_yearly_weibull_update(
+                    IMERG_pixel_1dy_xr, 
+                    thresh=thresh,
+                    maxmiss=maxmiss)
+
+    return WEIBULL_YEAR
+
+def down_year_parameters(N, C, W, BETA, GAMMA):
+    yy, la, lo = N.shape
+    Nd = np.zeros([yy, la, lo])
+    Cd = np.zeros([yy, la, lo])
+    Wd = np.zeros([yy, la, lo])
+    for i in range(la):
+        for j in range(lo):
+            Nd_, Cd_, Wd_ = down_wei_beta_alpha(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
+            Nd[:,i,j] = Nd_
+            Cd[:,i,j] = Cd_
+            Wd[:,i,j] = Wd_
+    return Nd, Cd, Wd
