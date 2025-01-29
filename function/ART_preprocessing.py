@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from scipy.stats import pearsonr
-from scipy.stats import spearmanr
+import itertools
+
+from scipy.stats import pearsonr, spearmanr
 
 from scipy.interpolate import RBFInterpolator
 
@@ -86,11 +87,40 @@ def create_box(DATA_INPUT, clat, clon, npix, reso):
 
     return box_3h, bcond
 
+def create_box_v2(DATA_INPUT, clat, clon, npix):
+    '''
+    Create a square box around a central point (clat, clon) with npix pixels.
+    The npix is the number of pixel to the left and right of the central point.
+    npix = 1, the box is 3x3 pixels.
+    npix = 2, the box is 5x5 pixels.
+    npix = 3, the box is 7x7 pixels.
+    DATA_INPUT: xarray dataset with lat and lon coordinates [xarray.core.dataset.Dataset].
+    clat: central latitude [np.float].
+    clon: central longitude [np.float].
+    npix: number of pixels to the left and right of the central point [np.int].
+    '''
+    lats = DATA_INPUT['lat'].data
+    lons = DATA_INPUT['lon'].data
+
+    lat_idx = np.abs(lats - clat).argmin()
+    lon_idx = np.abs(lons - clon).argmin()
+
+    lat_start = max(0, lat_idx - npix)
+    lat_end = min(len(lats) - 1, lat_idx + npix)
+    lon_start = max(0, lon_idx - npix)
+    lon_end = min(len(lons) - 1, lon_idx + npix)
+
+    box = DATA_INPUT.isel(
+    lat=slice(lat_start, lat_end + 1),  # +1 because slice is exclusive at the end
+    lon=slice(lon_start, lon_end + 1)
+    )
+
+    return box
+
 def wetfrac(array, thresh):
     return np.size(array[array > thresh])/np.size(array)
 
 def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix, thresh):
-    print(f'neihgborhood area: {box_3h.shape[0]}x{box_3h.shape[1]}')
     nlon = len(box_3h['lon'].data)
     nlat = len(box_3h['lat'].data)
     smax = box_3h.shape[0] # max spatial scale
@@ -209,9 +239,15 @@ def wet_matrix_extrapolation(WET_MATRIX, spatial_scale, temporal_scale, L1, npix
     
     return WET_MATRIX_EXTRA, new_spatial_scale
 
-def autocorrelation_neighborhood(box_3h, t_target, thresh, cor_method = 'spearman'):
+def autocorrelation_neighborhood(box, time_reso, t_target, thresh, cor_method = 'pearson'):
+    if time_reso == '3h':
+        xdaily = box.resample(time ='{}h'.format(t_target)).sum(dim='time', skipna=False).dropna(dim='time', how='any')
+    elif time_reso == '1dy':
+        xdaily = box
+    else:
+        print(f'Erorr: {time_reso} not valid')
+        return None
 
-    xdaily = box_3h.resample(time ='{}h'.format(t_target)).sum(dim='time', skipna=False).dropna(dim='time', how='any')
     lats = xdaily.dropna(dim='time', how='any').lat.values
     lons = xdaily.dropna(dim='time', how='any').lon.values
     nlats = np.size(lats)
@@ -242,6 +278,55 @@ def autocorrelation_neighborhood(box_3h, t_target, thresh, cor_method = 'spearma
     distance_vector = np.linspace(np.min(vdist), np.max(vdist), 40)
 
     return vdist, vcorr, distance_vector
+
+def autocorrelation_neighborhood_v2(box, time_reso, t_target, thresh, cor_method = 'pearson'):
+    if time_reso == '3h':
+        xdaily = box.resample(time ='{}h'.format(t_target)).sum(dim='time', skipna=False).dropna(dim='time', how='any')
+    elif time_reso == '1dy':
+        xdaily = box
+    else:
+        print(f'Erorr: {time_reso} not valid')
+        return None
+
+    lats = xdaily.dropna(dim='time', how='any').lat.values
+    lons = xdaily.dropna(dim='time', how='any').lon.values
+    nlat = np.size(lats)
+    nlon = np.size(lons)
+
+    points = list(itertools.combinations([(i, j) for i in range(nlat) for j in range(nlon)], 2))
+
+    vdist = []
+    vcorr = []
+
+    for (lat1, lon1), (lat2, lon2) in points:
+        # Extraer las series temporales de cada punto
+        p1 = xdaily['PRE'][:, lat1, lon1].values
+        p1 = np.maximum(p1-thresh, 0.0)
+        p2 = xdaily['PRE'][:, lat2, lon2].values
+        p2 = np.maximum(p2-thresh, 0.0)
+
+        # Eliminar NaNs en ambos arrays
+        mask = ~np.isnan(p1) & ~np.isnan(p2)
+        p1_clean, p2_clean = p1[mask], p2[mask]
+
+        if len(p1_clean) <= 3 and len(p2_clean) <= 3:
+            corr = np.nan
+            dist = np.nan
+        else:
+            dist = haversine(lat1, lon1, lat2, lon2)
+            
+            if cor_method == 'spearman':
+                corr = spearmanr(p1_clean, p2_clean)[0]
+            elif cor_method == 'pearson':
+                corr = pearsonr(p1_clean, p2_clean)[0]
+            else:
+                print(f'ERROR method {cor_method} not found')
+                return None
+
+        vcorr.append(float(corr))
+        vdist.append(float(dist))
+
+    return vdist, vcorr
 
 def spatial_correlation(DF_input, threshold, dir_base, cor_method):
     count = 0

@@ -2,8 +2,7 @@
     "file": "IMERG_Italy_1dy_2000_06_01_2024_02_29.nc",
 
     "L1":10,
-    "radio":0.1,
-    "npix":7,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,

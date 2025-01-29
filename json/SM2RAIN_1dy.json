@@ -2,8 +2,7 @@
     "file": "SM2RAIN_ASCAT_Italy_1dy_2007_01_01_2022_12_31.nc",
 
     "L1":10,
-    "radio":0.1,
-    "npix":5,
+    "npix":2, 
     "thresh": 1,
 
     "maxmiss":40,

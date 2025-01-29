@@ -2,12 +2,17 @@ import os
 import json
 import time
 import argparse
+import pandas as pd
 import numpy as np
 import xarray as xr
-import pandas as pd
 
 import psutil
 from joblib import Parallel, delayed
+
+from scipy.optimize import differential_evolution
+
+import warnings
+warnings.filterwarnings('ignore')
 
 import sys
 sys.path.append(os.path.abspath(".."))
@@ -80,8 +85,6 @@ nlon = np.size(lons)
 nlat = np.size(lats)
 ntime = len(PRE_data['time'])
 
-# year_vector = np.unique(pd.to_datetime(PRE_data['time']).year)
-
 # =============================================================================
 if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN':
     ds_veneto = PRE_data.sel(lat=slice(lat_max, lat_min), lon=slice(lon_min, lon_max))
@@ -106,69 +109,103 @@ lon2d_ref, lat2d_ref = np.meshgrid(lon_ref, lat_ref)
 del ds_veneto
 
 # =============================================================================
-def beta_3h_1dy(DATA_in, time_reso, lat_c, lon_c, PARAM):
+def gamma_3h_1dy(DATA_in, time_reso, lat_c, lon_c, PARAM):
     if time_reso == '3h':
         PRE_daily = DATA_in.resample(time ='D').sum(dim='time', skipna=False)
         BOX = ART_pre.create_box_v2(PRE_daily, lat_c, lon_c, PARAM['npix'])
-        tscales = np.array([1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 36, 48, 96])*param['dt']
     elif time_reso == '1dy':
         BOX = ART_pre.create_box_v2(DATA_in, lat_c, lon_c, PARAM['npix'])
-        tscales = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])*param['dt']
+        PRE_daily = DATA_in
     else:
         print(f'Erorr: {time_reso} not valid')
         return None
-    
+
     print(f"Neighborhood area: {BOX.sizes['lat']}x{BOX.sizes['lon']}")
     
-    BOX = BOX.transpose("lon", "lat", "time")
-    BOX = BOX['PRE']
+    i_ = np.where(lats==lat_c)[0][0]
+    j_ = np.where(lons==lon_c)[0][0]
+
+    IMERG_pixel_1dy = PRE_daily['PRE'][:,i_,j_].data
+    IMERG_pixel_1dy_xr = xr.DataArray(
+                IMERG_pixel_1dy, 
+                coords={'time':PRE_daily['time'].values}, 
+                dims=('time'))
+
+    IMERG_WEIBULL_YEAR = ART_down.fit_yearly_weibull_update(
+                    IMERG_pixel_1dy_xr, 
+                    thresh=PARAM['thresh'], 
+                    maxmiss=PARAM['maxmiss'])
     
-    smax = BOX.shape[0]
-    tscales = tscales[tscales < param['tmax'] + 0.001]
-    xscales = np.arange(1, smax+1)
-    xscales_km = xscales*param['L1']
+    vdist, vcorr = ART_pre.autocorrelation_neighborhood_v2(
+                    BOX, 
+                    time_reso, 
+                    param['target_t'], 
+                    param['thresh'])
     
-    WET_MATRIX = ART_pre.space_time_scales_agregations(
-                BOX, 
-                param['L1'], 
-                param['condition'], 
-                tscales, 
-                xscales, 
-                2*param['npix']+1, 
-                param['thresh'])
+    mask = ~np.isnan(vdist) & ~np.isnan(vcorr)
+    vdist, vcorr = np.array(vdist)[mask], np.array(vcorr)[mask]
+
+    vdist_sorted = np.sort(vdist) # order distance
+    vcorr_sorted = vcorr[np.argsort(vdist)] # order correlation in relation to distance
+    toll_cluster = 0.5
+
+    cluster = np.zeros(len(vdist_sorted))
+    count = 0
+    for i in range(1, len(vdist_sorted)):
+        if np.abs(vdist_sorted[i]-vdist_sorted[i-1]) < toll_cluster:
+            cluster[i] = count
+        else:
+            count = count + 1
+            cluster[i] = count
+
+    clust = set(cluster) # Extract only the uniques values
+    nclust = len(clust) # Numero de grupos
+
+    vdist_ave = np.zeros(nclust)
+    vcorr_ave = np.zeros(nclust)
+    for ei, elem in enumerate(clust):
+        di = vdist_sorted[cluster==elem] # Distance
+        ci = vcorr_sorted[cluster==elem] # Correlation
+        vdist_ave[ei] = np.mean(di) # Mean Distance
+        vcorr_ave[ei] = np.mean(ci) # Mean Correlation
     
-    nxscales = np.size(xscales)
-    
-    tscales_INTER = np.linspace(np.min(tscales), np.max(tscales), param['ninterp'])
-    WET_MATRIX_INTER = np.zeros((param['ninterp'], nxscales))
+    bounds = [(0.0, 25.0),(0, 0.3)] # NEW LIMITS USING ALL CORRELATIONS FUNCTION IN VENETO
 
-    for col in range(nxscales):
-        WET_MATRIX_INTER[:, col] = np.interp(tscales_INTER, tscales, WET_MATRIX[:, col])
+    def myfun(pardown):
+        return ART_down.myfun_sse(vdist_ave, vcorr_ave, pardown, PARAM['L1'], acf=PARAM['acf'])
 
-    WET_MATRIX_EXTRA, new_spatial_scale = ART_pre.wet_matrix_extrapolation(
-                WET_MATRIX_INTER, 
-                xscales_km, 
-                tscales_INTER, 
-                param['L1'], 
-                param['npix'])
+    resmin = differential_evolution(
+                myfun,
+                bounds,
+                disp=True,
+                tol=0.03,
+                atol=0.03,
+                workers=1,
+                updating='deferred'
+            )
 
-    origin_ref = [param['origin_x'], param['origin_t']]
-    target_ref = [param['target_x'], param['target_t']]
+    param1 = resmin.x[0]
+    param2 = resmin.x[1]
 
-    beta = ART_down.compute_beta(WET_MATRIX_EXTRA, origin_ref, target_ref, new_spatial_scale, tscales_INTER)
+    gamma = ART_down.gamma_manual(IMERG_WEIBULL_YEAR[:,0], 
+                        IMERG_WEIBULL_YEAR[:,1], 
+                        IMERG_WEIBULL_YEAR[:,2], 
+                        PARAM['L1'], 
+                        PARAM['L0'], 
+                        (param1, param2), 
+                        acf=PARAM['acf'])
 
-    return beta
-
+    return gamma
 
 # =============================================================================
 def compute_for_point(lat_idx, lon_idx):
-    return beta_3h_1dy(PRE_data, time_reso, lats[lat_idx], lons[lon_idx], param)
+    return gamma_3h_1dy(PRE_data, time_reso, lats[lat_idx], lons[lon_idx], param)
 
 Resource = []
 
 start_time = time.time()
 
-results = Parallel(n_jobs=param['BETA_cores'])(
+results = Parallel(n_jobs=param['GAMMA_cores'])(
     delayed(compute_for_point)(la, lo) for la in ndices_lat for lo in ndices_lon
     )
 
@@ -180,41 +217,40 @@ memory_consumed = psutil.virtual_memory().used / 1024 ** 3
 
 print(f"Elapsed time: {elapsed_minutes:.2f} minutes")
 print(f"Memory consumed: {memory_consumed:.3f} GB")
-print()
 
 # =============================================================================
 INFO = pd.DataFrame({
                     'Product':product,
-                    'Parameter':['BETA'],
+                    'Parameter':['GAMMA'],
                     'Resolution_t':[time_reso],
                     'Neighborhood':[NEIBHR],
                     'Cores':param['BETA_cores'],
                     'Time(min)':np.round(elapsed_minutes,3)})
 
-INFO.to_csv('../csv/BETA_INFO.csv', 
+INFO.to_csv('../csv/GAMMA_INFO.csv', 
             mode='a', 
-            header=not pd.io.common.file_exists('../csv/BETA_INFO.csv'), 
+            header=not pd.io.common.file_exists('../csv/GAMMA_INFO.csv'), 
             index=False)
 
 # =============================================================================
-BETA_VENETO = np.array(results).reshape(len(ndices_lat), len(ndices_lon))
+GAMMA_VENETO = np.array(results).reshape(len(ndices_lat), len(ndices_lon))
 
-BETA_xr = xr.Dataset(data_vars={"BETA": (("lat","lon"), BETA_VENETO.data)},
+GAMMA_xr = xr.Dataset(data_vars={"GAMMA": (("lat","lon"), GAMMA_VENETO.data)},
                     coords={'lat': lats[ndices_lat], 'lon': lons[ndices_lon]},
-                    attrs=dict(description=f"Beta of {product} for Veneto region limited as 10.5E to 13.5E and 44.5N to 47N"))
+                    attrs=dict(description=f"GAMMA of {product} for Veneto region limited as 10.5E to 13.5E and 44.5N to 47N"))
 
-BETA_xr.BETA.attrs["units"] = "dimensionless"
-BETA_xr.BETA.attrs["long_name"] = "Relation between Origin and Tarjet wet fraction"
-BETA_xr.BETA.attrs["origname"] = "BETA"
+GAMMA_xr.GAMMA.attrs["units"] = "dimensionless"
+GAMMA_xr.GAMMA.attrs["long_name"] = "Relation between Origin and Tarjet wet fraction"
+GAMMA_xr.GAMMA.attrs["origname"] = "GAMMA"
 
-BETA_xr.lat.attrs["units"] = "degrees_north"
-BETA_xr.lat.attrs["long_name"] = "Latitude"
+GAMMA_xr.lat.attrs["units"] = "degrees_north"
+GAMMA_xr.lat.attrs["long_name"] = "Latitude"
 
-BETA_xr.lon.attrs["units"] = "degrees_east"
-BETA_xr.lon.attrs["long_name"] = "Longitude"
+GAMMA_xr.lon.attrs["units"] = "degrees_east"
+GAMMA_xr.lon.attrs["long_name"] = "Longitude"
 
-BETA_out = os.path.join('..','output',f'VENETO_BETA_{product}_{time_reso}_{yy_s}_{yy_e}.nc')
-print(f'Export PRE data to {BETA_out}')
-BETA_xr.to_netcdf(BETA_out)
+GAMMA_out = os.path.join('..','output',f'VENETO_GAMMA_{product}_{time_reso}_{yy_s}_{yy_e}.nc')
+print(f'Export PRE data to {GAMMA_out}')
+GAMMA_xr.to_netcdf(GAMMA_out)
 
-print(f'BETA data saved in {BETA_out}')
+print(f'GAMMA data saved in {GAMMA_out}')

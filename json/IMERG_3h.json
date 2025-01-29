@@ -2,8 +2,7 @@
     "file": "IMERG_Italy_3h_2001_01_01_2023_12_31.nc",
 
     "L1":10,
-    "radio":0.1,
-    "npix":3,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,
