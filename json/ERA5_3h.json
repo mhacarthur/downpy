@@ -1,0 +1,26 @@
+{
+    "file": "ERA5_Italy_3hr_2000_01_01_2023_12_31.nc",
+
+    "L1":25,
+    "npix":2,
+    "thresh": 1,
+
+    "maxmiss":40,
+    "condition": "OVERLEAP",
+
+    "L0":0,
+    "tmax": 48,
+    "dt": 3,
+
+    "origin_x": 25,
+    "origin_t": 24,
+    "target_x": 0,
+    "target_t": 24,
+
+    "ninterp":2000,
+
+    "acf": "mar",
+    "corr_method":"pearson",
+    "BETA_cores": 20,
+    "GAMMA_cores": 27
+}
