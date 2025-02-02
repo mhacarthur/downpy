@@ -226,7 +226,7 @@ def wet_matrix_extrapolation(WET_MATRIX, spatial_scale, temporal_scale, L1, npix
     interpolator = RBFInterpolator(original_points, wet_fraction_values, kernel='cubic')
 
     # New spatial scale with 100 values from 0 to 50 km 
-    new_spatial_scale = np.linspace(0, npix * L1, 100)
+    new_spatial_scale = np.linspace(0, (2*npix+1)*L1, 100)
 
     # Create new grid for extrapolated data
     new_spatial, new_temporal = np.meshgrid(new_spatial_scale, temporal_scale)
