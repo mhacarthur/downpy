@@ -249,7 +249,7 @@ GAMMA_xr.lat.attrs["long_name"] = "Latitude"
 GAMMA_xr.lon.attrs["units"] = "degrees_east"
 GAMMA_xr.lon.attrs["long_name"] = "Longitude"
 
-GAMMA_out = os.path.join('..','output',f'VENETO_GAMMA_{product}_{time_reso}_{yy_s}_{yy_e}.nc')
+GAMMA_out = os.path.join('..','output',f'VENETO_GAMMA_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{NEIBHR}.nc')
 print(f'Export PRE data to {GAMMA_out}')
 GAMMA_xr.to_netcdf(GAMMA_out)
 

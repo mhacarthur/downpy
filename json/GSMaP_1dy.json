@@ -1,8 +1,8 @@
 {
-    "file": "IMERG_Italy_1dy_2000_06_01_2024_02_29.nc",
+    "file": "GSMaP_veneto_1dy_2002_01_01_2019_12_31.nc",
 
     "L1":10,
-    "npix":2,
+    "npix":1,
     "thresh": 1,
 
     "maxmiss":40,

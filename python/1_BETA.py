@@ -213,7 +213,7 @@ BETA_xr.lat.attrs["long_name"] = "Latitude"
 BETA_xr.lon.attrs["units"] = "degrees_east"
 BETA_xr.lon.attrs["long_name"] = "Longitude"
 
-BETA_out = os.path.join('..','output',f'VENETO_BETA_{product}_{time_reso}_{yy_s}_{yy_e}.nc')
+BETA_out = os.path.join('..','output',f'VENETO_BETA_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{NEIBHR}.nc')
 print(f'Export PRE data to {BETA_out}')
 BETA_xr.to_netcdf(BETA_out)
 
