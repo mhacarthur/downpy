@@ -2,7 +2,7 @@
     "file": "PERSIANN_Italy_1dy_2000_01_01_2023_12_31.nc",
 
     "L1":25,
-    "npix":2,
+    "npix":3,
     "thresh": 1,
 
     "maxmiss":40,

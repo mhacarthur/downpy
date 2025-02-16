@@ -9,13 +9,13 @@
     "condition": "OVERLEAP",
 
     "L0":0,
-    "tmax": 48,
-    "dt": 3,
+    "tmax": 10,
+    "dt": 1,
 
     "origin_x": 25,
-    "origin_t": 24,
+    "origin_t": 1,
     "target_x": 0,
-    "target_t": 24,
+    "target_t": 1,
 
     "ninterp":2000,
 
