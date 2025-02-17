@@ -36,23 +36,63 @@ def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
         NOBS[i] = len(sample[sample>=0])
 
         if NOBS[i] < OBS_min:
-            NCW[i,0:3] = np.array([0, np.nan, np.nan])
-            NCW[i,3] = yy
+            NCW[i,:] = np.array([0, np.nan, np.nan, yy])
 
         else:
             excesses = sample[sample > thresh] - thresh
             Ni = np.size(excesses)
             if Ni == 0:
-                NCW[i,0:3] = np.array([0, np.nan, np.nan])
-                NCW[i,3] = yy
+                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
             elif Ni == 1:
-                NCW[i,0:3] = np.array([0, np.nan, np.nan])
-                NCW[i,3] = yy
+                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
             else:
                 NCW[i,0:3] = wei_fit_update(excesses)
                 NCW[i,3] = yy
 
     return NCW
+
+def Quantile_manual_general(Tr, N, C, W):
+    """
+    Manual methid to compute quantiles for given return periods and parameters.
+    Works whether N, C, W are provided as scalars or as 1D arrays.
+    
+    Parameters:
+        Tr : array-like
+            List/array of return periods (e.g., [10, 20, 50, 100]).
+        N  : scalar or array-like
+            Number of wet days per year.
+        C  : scalar or array-like
+            Scale parameter.
+        W  : scalar or array-like
+            Shape parameter.
+            
+    Returns:
+        QQ : ndarray
+            If N, C, W are arrays (with length > 1), returns an array of shape (len(N), len(Tr))
+            where each row corresponds to one set of parameters.
+            If N, C, W are scalars, returns a 1D array of length len(Tr).
+    """
+    # Ensure that N, C, W are numpy arrays.
+    N = np.atleast_1d(N)
+    C = np.atleast_1d(C)
+    W = np.atleast_1d(W)
+    
+    # Initialize the output array with shape (len(N), len(Tr))
+    QQ = np.zeros((len(N), len(Tr)))
+    
+    # Loop over each return period
+    for idx, tr in enumerate(Tr):
+        annual_non_exceed_prob = 1 - 1/tr  # scalar
+        daily_non_exceed_prob = annual_non_exceed_prob ** (1 / N)  # broadcasted over N
+        inside_log = 1 - daily_non_exceed_prob
+        quantiles = C * (-np.log(inside_log)) ** (1 / W)
+        QQ[:, idx] = quantiles  # each column corresponds to a return period
+    
+    # If the original parameters were scalars, return a 1D array instead of 2D.
+    if QQ.shape[0] == 1:
+        return QQ[0, :]
+    else:
+        return QQ
 
 def compute_beta(WET_MATRIX_EXTRA, origin, target, new_spatial_scale, tscales_INTER):
     pos_xmin = np.argmin(np.abs(origin[0] - new_spatial_scale))

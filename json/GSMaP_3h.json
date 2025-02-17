@@ -1,5 +1,5 @@
 {
-    "file": "GSMaP_veneto_1dy_2002_01_01_2019_12_31.nc",
+    "file": "GSMaP_Italy_3h_2002_01_01_2024_12_31.nc",
 
     "L1":10,
     "npix":2,
@@ -9,18 +9,18 @@
     "condition": "OVERLEAP",
 
     "L0":0,
-    "tmax": 10, 
-    "dt": 1,
+    "tmax": 48,
+    "dt": 3,
 
     "origin_x": 10, 
-    "origin_t": 1, 
+    "origin_t": 24, 
     "target_x": 0, 
-    "target_t": 1,
+    "target_t": 24,
 
     "ninterp":2000,
 
     "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 20,
+    "BETA_cores": 22,
     "GAMMA_cores": 27
 }

@@ -2,7 +2,7 @@
     "file": "MSWEP_Italy_3h_1980_01_01_2023_12_31.nc",
 
     "L1":10,
-    "npix":3,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,
