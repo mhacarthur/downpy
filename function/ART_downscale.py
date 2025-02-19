@@ -428,7 +428,7 @@ def mev_quant(Fi, x0, N, C, W, thresh=1):
     Fi.shape = (1,) * (1 - Fi.ndim) + Fi.shape
     m = np.size(Fi)
     quant = np.zeros(m)
-    flags = np.zeros(m, dtype=bool)  # Flag for the convergence of numerical solver
+    flags = np.ones(m, dtype=bool)  # Flag for the convergence of numerical solver
 
     for ii in range(m):
         # Define the function to solve
@@ -442,8 +442,8 @@ def mev_quant(Fi, x0, N, C, W, thresh=1):
         
         # Check for convergence issues
         if fval > 1e-5:
-            print('mev_quant:: ERROR - fsolve does not work - change x0')
-            flags[ii] = True
+            print('ERROR - fsolve does not work - change x0')
+            flags[ii] = False
 
     # Add the threshold to the quantile
     quant += thresh
@@ -492,12 +492,13 @@ def pre_quantiles_array(N, C, W, Tr, lat, lon, thresh):
             if np.isnan(data_tmp).sum() == len(data_tmp):
                 continue
             else:
-                quant = mev_quant(Fi, x0, 
+                quant, flag = mev_quant(Fi, x0, 
                                 N[:,i,j], 
                                 C[:,i,j], 
                                 W[:,i,j],
-                                thresh=thresh)[0]
-                QUANTILE[:,i,j] = quant
+                                thresh=thresh)
+                QQ = np.where(flag, quant, np.nan)
+                QUANTILE[:,i,j] = QQ
 
     return QUANTILE
 

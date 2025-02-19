@@ -1429,13 +1429,7 @@ def fit_yearly_weibull(xdata, thresh=0, maxmiss=36):
         excesses = sample[sample > thresh] - thresh
         # excesses = sample[sample > thresh]
         Ni = np.size(excesses)
-        if Ni == 0:
-            NCW[i, :] = np.array([0, np.nan, np.nan])
-            # NCW[i, :] = np.array([0, 1E-9, 1.0])
-        elif Ni == 1:
-            # what = 0.7 # Prior belief on shape parameter
-            # chat = excesses[0]/gamma(1 + 1/what)
-            # NCW[i, :] = np.array([1.0, chat, what])
+        if Ni == 0 or Ni == 1:
             NCW[i, :] = np.array([0, np.nan, np.nan])
         else:
             NCW[i,:] = wei_fit(excesses)
