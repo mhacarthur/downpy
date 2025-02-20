@@ -1,0 +1,26 @@
+{
+    "file": "CHIRPS_Italy_1dy_1981_01_01_2024_06_30.nc",
+
+    "L1":5,
+    "npix":2,
+    "thresh": 1,
+
+    "maxmiss":40,
+    "condition": "OVERLEAP",
+
+    "L0":0,
+    "tmax": 10,
+    "dt": 1,
+
+    "origin_x": 5,
+    "origin_t": 1,
+    "target_x": 0,
+    "target_t": 1,
+
+    "ninterp":2000,
+
+    "acf": "mar",
+    "corr_method":"pearson",
+    "BETA_cores": 20,
+    "GAMMA_cores": 27
+}
