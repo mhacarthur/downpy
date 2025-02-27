@@ -66,7 +66,7 @@ else:
 PRE_data = xr.open_dataset(dir_data)
 PRE_data = PRE_data.sel(time=PRE_data.time.dt.year.isin([np.arange(yy_s,yy_e+1)]))
 
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN':
+if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5':
     PRE_data = PRE_data.sel(lat=slice(lat_max+1.5, lat_min-1.5), lon=slice(lon_min-1.5, lon_max+1.5))
 else:
     PRE_data = PRE_data.sel(lat=slice(lat_min-1.5, lat_max+1.5), lon=slice(lon_min-1.5, lon_max+1.5))
@@ -83,7 +83,7 @@ ntime = len(PRE_data['time'])
 # year_vector = np.unique(pd.to_datetime(PRE_data['time']).year)
 
 # =============================================================================
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN':
+if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5':
     ds_veneto = PRE_data.sel(lat=slice(lat_max, lat_min), lon=slice(lon_min, lon_max))
 else:
     ds_veneto = PRE_data.sel(lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
@@ -128,14 +128,15 @@ def beta_3h_1dy(DATA_in, time_reso, lat_c, lon_c, PARAM):
     xscales = np.arange(1, smax+1)
     xscales_km = xscales*param['L1']
     
-    WET_MATRIX = ART_pre.space_time_scales_agregations(
-                BOX, 
-                param['L1'], 
-                param['condition'], 
-                tscales, 
-                xscales, 
-                2*param['npix']+1, 
-                param['thresh'])
+    WET_MATRIX = ART_pre.space_time_scales_agregations_v2(BOX, time_reso, PARAM['L1'], tscales, xscales, 2*param['npix']+1, PARAM['thresh'])
+    # WET_MATRIX = ART_pre.space_time_scales_agregations(
+    #             BOX, 
+    #             param['L1'], 
+    #             param['condition'], 
+    #             tscales, 
+    #             xscales, 
+    #             2*param['npix']+1, 
+    #             param['thresh'])
     
     nxscales = np.size(xscales)
     

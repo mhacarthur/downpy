@@ -71,7 +71,7 @@ else:
 PRE_data = xr.open_dataset(dir_data)
 PRE_data = PRE_data.sel(time=PRE_data.time.dt.year.isin([np.arange(yy_s,yy_e+1)]))
 
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN':
+if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5' or product == 'GSMaP':
     PRE_data = PRE_data.sel(lat=slice(lat_max+1.5, lat_min-1.5), lon=slice(lon_min-1.5, lon_max+1.5))
 else:
     PRE_data = PRE_data.sel(lat=slice(lat_min-1.5, lat_max+1.5), lon=slice(lon_min-1.5, lon_max+1.5))
@@ -86,7 +86,7 @@ nlat = np.size(lats)
 ntime = len(PRE_data['time'])
 
 # =============================================================================
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN':
+if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5' or product == 'GSMaP':
     ds_veneto = PRE_data.sel(lat=slice(lat_max, lat_min), lon=slice(lon_min, lon_max))
 else:
     ds_veneto = PRE_data.sel(lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
@@ -169,7 +169,14 @@ def gamma_3h_1dy(DATA_in, time_reso, lat_c, lon_c, PARAM):
         vdist_ave[ei] = np.mean(di) # Mean Distance
         vcorr_ave[ei] = np.mean(ci) # Mean Correlation
     
-    bounds = [(0.0, 25.0),(0, 0.3)] # NEW LIMITS USING ALL CORRELATIONS FUNCTION IN VENETO
+    # NEW LIMITS USING ALL CORRELATIONS FUNCTION IN VENETO
+    # bounds = [(0, 25),(0, 0.3)] 
+    # tol = 0.03
+    # atol = 0.03
+    # EXP 20
+    bounds = [(0, 200),(0, 1)]
+    tol = 0.005
+    atol = 0.005
 
     def myfun(pardown):
         return ART_down.myfun_sse(vdist_ave, vcorr_ave, pardown, PARAM['L1'], acf=PARAM['acf'])
@@ -178,8 +185,8 @@ def gamma_3h_1dy(DATA_in, time_reso, lat_c, lon_c, PARAM):
                 myfun,
                 bounds,
                 disp=True,
-                tol=0.03,
-                atol=0.03,
+                tol=tol,
+                atol=atol,
                 workers=1,
                 updating='deferred'
             )

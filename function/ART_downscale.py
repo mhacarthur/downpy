@@ -5,52 +5,6 @@ from scipy.special import gamma
 from scipy.integrate import dblquad, nquad
 from scipy.optimize import curve_fit, minimize, fsolve
 
-def wei_fit_update(sample):
-    sample = np.asarray(sample) # from list to Numpy array
-    x      = np.sort(sample) # sort ascend by default
-    M0hat  = np.mean(x)
-    M1hat  = 0.0
-    n      = x.size # sample size
-    for ii in range(n):
-        real_ii = ii + 1
-        M1hat   = M1hat + x[ii]*(n - real_ii)
-    M1hat = M1hat/(n*(n-1))
-    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
-    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
-    return  n, c, w
-
-def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
-    '''
-    This Function computes the Weibull fit parameters for each year in the data.
-    Return NCW matrix [WET_DAYS (N), SCALE (S), SHAPE (W), YEARS]
-    '''
-    OBS_min = 366 - maxmiss
-    years = np.unique(xdata.time.dt.year.values)
-    years_num = np.size(years)
-
-    NCW = np.zeros((years_num, 4))
-    NOBS = np.zeros(years_num)
-
-    for i, yy in enumerate(years):
-        sample = xdata.sel(time=str(yy))
-        NOBS[i] = len(sample[sample>=0])
-
-        if NOBS[i] < OBS_min:
-            NCW[i,:] = np.array([0, np.nan, np.nan, yy])
-
-        else:
-            excesses = sample[sample > thresh] - thresh
-            Ni = np.size(excesses)
-            if Ni == 0:
-                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
-            elif Ni == 1:
-                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
-            else:
-                NCW[i,0:3] = wei_fit_update(excesses)
-                NCW[i,3] = yy
-
-    return NCW
-
 def Quantile_manual_general(Tr, N, C, W):
     """
     Manual methid to compute quantiles for given return periods and parameters.
@@ -105,42 +59,6 @@ def compute_beta(WET_MATRIX_EXTRA, origin, target, new_spatial_scale, tscales_IN
 
     beta = pwet_origin / pwet_target
     return beta
-
-def str_exp_fun(x, d0, mu):
-    '''
-    Stretched exponential rainfall correlation function
-    from eg Habib and krajewski (2003)
-    or Villarini and Krajewski (2007)
-    with 2 parameters d0, mu (value as x = 0 is 1)
-    '''
-    x = np.asarray(x) # transform to numpy array
-    is_scalar = False if x.ndim > 0 else True # create flag for output
-    x.shape = (1,)*(1-x.ndim) + x.shape # give it dimension 1 if scalar
-    myfun = np.exp( -(x/d0)**mu)
-    myfun = myfun if not is_scalar else myfun[0]
-    return  myfun
-
-def epl_fun(x, epsilon, alpha):
-    '''
-    Marco's Exponential kernel + Power law tail
-    (autocorrelation) function with exponential nucleus and power law decay
-    for x> epsilon - 2 parameters
-    see Marani 2003 WRR for more details
-    '''
-    x = np.asarray(x) # transform to numpy array
-    is_scalar = False if x.ndim > 0 else True # create flag for output
-    x.shape = (1,)*(1-x.ndim) + x.shape # give it dimension 1 if scalar
-    m = np.size(x)
-    myfun = np.zeros(m)
-    for ii in range(m):
-        if x[ii] < 10e-6:
-            myfun[ii] = 1
-        elif x[ii] < epsilon:
-            myfun[ii] = np.exp(-alpha*x[ii]/epsilon)
-        else:
-            myfun[ii] = (epsilon/(np.exp(1)*x[ii]))**alpha
-    myfun = myfun if not is_scalar else myfun[0]
-    return  myfun
 
 def str_exp_fun(x, d0, mu):
     '''
@@ -414,6 +332,10 @@ def mev_fun(y, pr, N, C, W):
     mev0f = np.sum( ( 1-np.exp(-(y/C)**W ))**N) - nyears*pr
     return mev0f
 
+# =========================================================================================================
+# Quantiles 
+# =========================================================================================================
+
 def mev_quant(Fi, x0, N, C, W, thresh=1):
     import numpy as np
     import scipy.optimize
@@ -545,6 +467,114 @@ def gamma_manual(Ns, Cs, Ws, L, L0, par_acf, acf):
     gam = vrf(L, L0, par_acf, acf=acf)
     return gam
 
+# =========================================================================================================
+# Weibull fit 
+# =========================================================================================================
+
+def wei_fit_update(sample):
+    sample = np.asarray(sample) # from list to Numpy array
+    x      = np.sort(sample) # sort ascend by default
+    M0hat  = np.mean(x)
+    M1hat  = 0.0
+    n      = x.size # sample size
+    for ii in range(n):
+        real_ii = ii + 1
+        M1hat   = M1hat + x[ii]*(n - real_ii)
+    M1hat = M1hat/(n*(n-1))
+    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
+    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
+    return  n, c, w
+
+def wei_fit_pwm(sample, threshold = 0): 
+    ''' fit a 2-parameters Weibull distribution to a sample 
+    by means of Probability Weighted Moments (PWM) matching (Greenwood 1979)
+    using only observations larger than a value 'threshold' are used for the fit
+    -- threshold without renormalization -- it assumes the values below are 
+    not present. Default threshold = 0    
+    INPUT:: sample (array with observations) threshold (default is = 0)
+    OUTPUT::
+    returns dimension of the sample (n) (only values above threshold)
+    Weibull scale (c) and shape (w) parameters '''    
+    sample = np.asarray(sample) # from list to Numpy array
+    wets   = sample[sample > threshold]
+    x      = np.sort(wets) # sort ascend by default
+    M0hat  = np.mean(x)
+    M1hat  = 0.0
+    n      = x.size # sample size
+    for ii in range(n): 
+        real_ii = ii + 1
+        M1hat   = M1hat + x[ii]*(n - real_ii) 
+    M1hat = M1hat/(n*(n-1))
+    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
+    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
+    return  n, c, w
+
+def wei_fit_pwm_cens(sample, threshold = 0): 
+    ''' fit a 2-parameters Weibull distribution to a sample 
+    by means of censored Probability Weighted Moments (CPWM) - Wang, 1999
+    only observations larger than a value 'threshold' are used for the fit
+    but the probability mass of the observations below threshold is accounted for.
+    compute the first two PWMs
+    ar and br are linear comb of each other, perfectly equivalent
+    I use censoring on the br as proposed by Wang 1990
+    so that I am censoring the lower part of the distribution
+    Default threshold = 0
+    INPUT:: sample (array with observations) threshold (default is = 0)
+    OUTPUT::
+    returns numerosity of the sample (n) (only values above threshold)
+    Weibull scale (c) and shape (w) parameters '''    
+    sample = np.asarray(sample) # from list to Numpy array
+    wets   = sample[sample > 0]
+    x      = np.sort(wets) # sort ascend by default
+    b0  = 0.0
+    b1  = 0.0
+    n      = x.size # sample size
+    for ii in range(n): 
+        real_ii = ii + 1
+        if x[ii]>threshold:
+            b1=b1+x[ii]*(real_ii-1)
+            b0=b0+x[ii]
+    b1=b1/(n*(n-1))
+    b0=b0/n
+    # obtain ar=Mrhat  as linear combination of the first two br
+    M0hat = b0
+    M1hat = b0 - b1
+    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
+    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
+    return  n, c, w
+
+def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
+    '''
+    This Function computes the Weibull fit parameters for each year in the data.
+    Return NCW matrix [WET_DAYS (N), SCALE (S), SHAPE (W), YEARS]
+    '''
+    OBS_min = 366 - maxmiss
+    years = np.unique(xdata.time.dt.year.values)
+    years_num = np.size(years)
+
+    NCW = np.zeros((years_num, 4))
+    NOBS = np.zeros(years_num)
+
+    for i, yy in enumerate(years):
+        sample = xdata.sel(time=str(yy))
+        NOBS[i] = len(sample[sample>=0])
+
+        if NOBS[i] < OBS_min:
+            NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+
+        else:
+            excesses = sample[sample > thresh]
+            Ni = np.size(excesses)
+            if Ni == 0:
+                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+            elif Ni == 1:
+                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+            else:
+                NCW[i,0:3] = wei_fit_update(excesses)
+                NCW[i,3] = yy
+
+    return NCW
+
 def weibull_year_parameters(DATA_in, lat_c, lon_c, thresh, maxmiss):
     lats = DATA_in['lat'].data
     lons = DATA_in['lon'].data
@@ -570,10 +600,16 @@ def down_year_parameters(N, C, W, BETA, GAMMA):
     Nd = np.zeros([yy, la, lo])
     Cd = np.zeros([yy, la, lo])
     Wd = np.zeros([yy, la, lo])
+    
     for i in range(la):
         for j in range(lo):
-            Nd_, Cd_, Wd_ = down_wei_beta_alpha(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
-            Nd[:,i,j] = Nd_
-            Cd[:,i,j] = Cd_
-            Wd[:,i,j] = Wd_
+            if np.isnan(BETA[i,j]) == True:
+                Nd[:,i,j] = np.nan
+                Cd[:,i,j] = np.nan
+                Wd[:,i,j] = np.nan
+            else:
+                Nd_, Cd_, Wd_ = down_wei_beta_alpha(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
+                Nd[:,i,j] = Nd_
+                Cd[:,i,j] = Cd_
+                Wd[:,i,j] = Wd_
     return Nd, Cd, Wd

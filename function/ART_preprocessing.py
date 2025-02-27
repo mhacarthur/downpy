@@ -213,8 +213,52 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
         # print()
     # print()
 
-    WET_MATRIX = np.reshape(Swet_final,(10,npix))
+    WET_MATRIX = np.reshape(Swet_final,(len(tscales),npix))
 
+    return WET_MATRIX
+
+def space_time_scales_agregations_v2(box, L1, tscales, xscales, npix, thresh):
+    nlon = len(box['lon'].data)
+    nlat = len(box['lat'].data)
+    smax = box.shape[0]
+    Swet_final = []
+    Swet_scale = []
+
+    for st in tscales:
+        # input_data = box.resample(time='{}h'.format(st)).sum(dim='time', skipna = False)
+        input_data = box.coarsen(time=st, boundary="trim").sum()
+
+        for ix, sx in enumerate(xscales):
+            if sx == 1:
+                rain_tmp = np.zeros([nlon, nlat, input_data.shape[2]])
+                wet_tmp = np.zeros([nlon, nlat])
+                for i in range(nlon):
+                    for j in range(nlat):
+                        wet_tmp[i,j] = wetfrac(input_data[i,j,:].data, thresh)
+                        rain_tmp[i,j] = input_data[i,j,:].data
+                Swet_final.append(np.nanmean(wet_tmp))
+                Swet_scale.append(L1)
+
+            elif sx == smax:
+                rainfall_tmp = input_data.mean(axis=(0,1))
+                wet_tmp = wetfrac(rainfall_tmp, thresh)
+                Swet_final.append(np.nanmean(wet_tmp))
+                Swet_scale.append(L1*smax)
+            
+            elif sx > 1 and sx < smax:
+                Swet_fraction = []
+                for i in range(nlon):
+                    for j in range(nlat):
+                        box_tmp = input_data[i:i+sx,j:j+sx,:]
+                        if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
+                            wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
+                            Swet_fraction.append(wet_tmp)
+
+                Swet_final.append(np.nanmean(Swet_fraction))
+                Swet_scale.append(L1*sx)
+
+    WET_MATRIX = np.reshape(Swet_final,(len(tscales),npix))
+    
     return WET_MATRIX
 
 def wet_matrix_extrapolation(WET_MATRIX, spatial_scale, temporal_scale, L1, npix):
@@ -385,108 +429,108 @@ def spatial_correlation(DF_input, threshold, dir_base, cor_method):
     
     return CORR_DF
 
-def ART_downscalling(DATA_in, lats, lons, lat_c, lon_c, PARAM):
-    PRE_daily = DATA_in.resample(time ='D').sum(dim='time', skipna=False)
+# def ART_downscalling(DATA_in, time_reso, lats, lons, lat_c, lon_c, PARAM):
+#     PRE_daily = DATA_in.resample(time ='D').sum(dim='time', skipna=False)
 
-    DATES_daily = PRE_daily['time']
+#     DATES_daily = PRE_daily['time']
 
-    i_ = np.where(lats==lat_c)[0][0]
-    j_ = np.where(lons==lon_c)[0][0]
+#     i_ = np.where(lats==lat_c)[0][0]
+#     j_ = np.where(lons==lon_c)[0][0]
 
-    IMERG_pixel_1dy = PRE_daily['PRE'][:,i_,j_].data
+#     IMERG_pixel_1dy = PRE_daily['PRE'][:,i_,j_].data
 
-    IMERG_pixel_1dy_xr = xr.DataArray(
-                IMERG_pixel_1dy, 
-                coords={'time':PRE_daily['time'].values}, 
-                dims=('time'))
+#     IMERG_pixel_1dy_xr = xr.DataArray(
+#                 IMERG_pixel_1dy, 
+#                 coords={'time':PRE_daily['time'].values}, 
+#                 dims=('time'))
 
-    IMERG_WEIBULL_YEAR = fit_yearly_weibull_update(
-                IMERG_pixel_1dy_xr, 
-                thresh=PARAM['thresh'], 
-                maxmiss=PARAM['maxmiss'])
+#     IMERG_WEIBULL_YEAR = fit_yearly_weibull_update(
+#                 IMERG_pixel_1dy_xr, 
+#                 thresh=PARAM['thresh'], 
+#                 maxmiss=PARAM['maxmiss'])
 
-    box_3h, bcond = create_box(DATA_in, lat_c, lon_c, PARAM['npix'], reso=PARAM['radio'])
+#     box_3h, bcond = create_box(DATA_in, lat_c, lon_c, PARAM['npix'], reso=PARAM['radio'])
 
+#     smax = box_3h.shape[0] # max spatial scale
+#     tscales = np.array([1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 36, 48, 96])*PARAM['dt']
+#     tscales = tscales[tscales < PARAM['tmax'] + 0.001]
+#     xscales = np.arange(1, smax+1)
+#     xscales_km = xscales*PARAM['L1']
+#     ntscales = np.size(tscales)
+#     nsscales = np.size(xscales)
 
-    smax = box_3h.shape[0] # max spatial scale
-    tscales = np.array([1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 36, 48, 96])*PARAM['dt']
-    tscales = tscales[tscales < PARAM['tmax'] + 0.001]
-    xscales = np.arange(1, smax+1)
-    xscales_km = xscales*PARAM['L1']
-    ntscales = np.size(tscales)
-    nsscales = np.size(xscales)
+#     WET_MATRIX = space_time_scales_agregations_v2(box_3h, time_reso, PARAM['L1'], tscales, xscales, 2*PARAM['npix']+1, PARAM['thresh'])
+#     # WET_MATRIX = space_time_scales_agregations(
+#     #             box_3h, 
+#     #             PARAM['L1'], 
+#     #             PARAM['condition'], 
+#     #             tscales, 
+#     #             xscales, 
+#     #             PARAM['npix'], 
+#     #             PARAM['thresh'])
 
-    WET_MATRIX = space_time_scales_agregations(
-                box_3h, 
-                PARAM['L1'], 
-                PARAM['condition'], 
-                tscales, 
-                xscales, 
-                PARAM['npix'], 
-                PARAM['thresh'])
+#     xscales_km_2d, tscales_2d = np.meshgrid(xscales_km, tscales)
+#     ntscales = np.size(tscales)
+#     nxscales = np.size(xscales)
 
-    xscales_km_2d, tscales_2d = np.meshgrid(xscales_km, tscales)
-    ntscales = np.size(tscales)
-    nxscales = np.size(xscales)
-
-    tscales_INTER = np.linspace(np.min(tscales), np.max(tscales), PARAM['ninterp'])
-    WET_MATRIX_INTER = np.zeros((PARAM['ninterp'], nxscales))
+#     tscales_INTER = np.linspace(np.min(tscales), np.max(tscales), PARAM['ninterp'])
+#     WET_MATRIX_INTER = np.zeros((PARAM['ninterp'], nxscales))
     
-    for col in range(nxscales):
-        WET_MATRIX_INTER[:, col] = np.interp(tscales_INTER, tscales, WET_MATRIX[:, col])
+#     for col in range(nxscales):
+#         WET_MATRIX_INTER[:, col] = np.interp(tscales_INTER, tscales, WET_MATRIX[:, col])
 
-    WET_MATRIX_EXTRA, new_spatial_scale = wet_matrix_extrapolation(
-                WET_MATRIX_INTER, 
-                xscales_km, 
-                tscales_INTER, 
-                PARAM['L1'], 
-                PARAM['npix'])
+#     WET_MATRIX_EXTRA, new_spatial_scale = wet_matrix_extrapolation(
+#                 WET_MATRIX_INTER, 
+#                 xscales_km, 
+#                 tscales_INTER, 
+#                 PARAM['L1'], 
+#                 PARAM['npix'])
 
-    origin_ref = [PARAM['origin_x'], PARAM['origin_t']]
-    target_ref = [PARAM['target_x'], PARAM['target_t']]
+#     origin_ref = [PARAM['origin_x'], PARAM['origin_t']]
+#     target_ref = [PARAM['target_x'], PARAM['target_t']]
 
-    beta = compute_beta(WET_MATRIX_EXTRA, origin_ref, target_ref, new_spatial_scale, tscales_INTER)
+#     beta = compute_beta(WET_MATRIX_EXTRA, origin_ref, target_ref, new_spatial_scale, tscales_INTER)
 
-    vdist, vcorr, distance_vector = autocorrelation_neighborhood(
-                box_3h, 
-                t_target = PARAM['target_t'], 
-                thresh = PARAM['thresh'], 
-                cor_method = PARAM['corr_method'])
+#     vdist, vcorr, distance_vector = autocorrelation_neighborhood(
+#                 box_3h, 
+#                 t_target = PARAM['target_t'], 
+#                 thresh = PARAM['thresh'], 
+#                 cor_method = PARAM['corr_method'])
 
-    # FIT, _ = curve_fit(str_exp_fun, vdist, vcorr)
-    # FIT_d0, FIT_mu0 = FIT
-    # FIT, _ = curve_fit(epl_fun, vdist, vcorr)
-    # FIT_eps, FIT_alp = FIT
+#     # FIT, _ = curve_fit(str_exp_fun, vdist, vcorr)
+#     # FIT_d0, FIT_mu0 = FIT
+#     # FIT, _ = curve_fit(epl_fun, vdist, vcorr)
+#     # FIT_eps, FIT_alp = FIT
 
-    vdist_sorted = np.sort(vdist) # order distance
-    vcorr_sorted = vcorr[np.argsort(vdist)] # order correlation in relation to distance
-    toll_cluster = 0.5
+#     vdist_sorted = np.sort(vdist) # order distance
+#     vcorr_sorted = vcorr[np.argsort(vdist)] # order correlation in relation to distance
+#     toll_cluster = 0.5
 
-    cluster = np.zeros(len(vdist_sorted))
-    count = 0
-    for i in range(1, len(vdist_sorted)):
-        if np.abs(vdist_sorted[i]-vdist_sorted[i-1]) < toll_cluster:
-            cluster[i] = count
-        else:
-            count = count + 1
-            cluster[i] = count
+#     cluster = np.zeros(len(vdist_sorted))
+#     count = 0
+#     for i in range(1, len(vdist_sorted)):
+#         if np.abs(vdist_sorted[i]-vdist_sorted[i-1]) < toll_cluster:
+#             cluster[i] = count
+#         else:
+#             count = count + 1
+#             cluster[i] = count
 
-    clust = set(cluster) # Extract only the uniques values
-    nclust = len(clust) # Numero de grupos
+#     clust = set(cluster) # Extract only the uniques values
+#     nclust = len(clust) # Numero de grupos
 
-    vdist_ave = np.zeros(nclust)
-    vcorr_ave = np.zeros(nclust)
-    for ei, elem in enumerate(clust):
-        di = vdist_sorted[cluster==elem] # Distance
-        ci = vcorr_sorted[cluster==elem] # Correlation
-        vdist_ave[ei] = np.mean(di) # Mean Distance
-        vcorr_ave[ei] = np.mean(ci) # Mean Correlation
+#     vdist_ave = np.zeros(nclust)
+#     vcorr_ave = np.zeros(nclust)
+#     for ei, elem in enumerate(clust):
+#         di = vdist_sorted[cluster==elem] # Distance
+#         ci = vcorr_sorted[cluster==elem] # Correlation
+#         vdist_ave[ei] = np.mean(di) # Mean Distance
+#         vcorr_ave[ei] = np.mean(ci) # Mean Correlation
 
-    # FIT, _ = curve_fit(epl_fun, vdist_ave, vcorr_ave)
-    # FIT_ave_eps, FIT_ave_alp = FIT
+#     # FIT, _ = curve_fit(epl_fun, vdist_ave, vcorr_ave)
+#     # FIT_ave_eps, FIT_ave_alp = FIT
 
-    # bounds = [(0.0, 200),(0, 1)] # ORIGINAL LIMITS BY ZORZETO
-    bounds = [(0.0, 25.0),(0, 0.3)] # NEW LIMITS USING ALL CORRELATIONS FUNCTION IN VENETO
+#     # bounds = [(0.0, 200),(0, 1)] # ORIGINAL LIMITS BY ZORZETO
+#     bounds = [(0.0, 25.0),(0, 0.3)] # NEW LIMITS USING ALL CORRELATIONS FUNCTION IN VENETO
     
     def myfun(pardown):
         return myfun_sse(vdist_ave, vcorr_ave, pardown, PARAM['L1'], acf=PARAM['acf'])
