@@ -1,6 +1,7 @@
 import scipy
 import numpy as np
 import xarray as xr
+import scipy.optimize
 from scipy.special import gamma
 from scipy.integrate import dblquad, nquad
 from scipy.optimize import curve_fit, minimize, fsolve
@@ -306,12 +307,69 @@ def down_wei_beta_alpha(Ns, Cs, Ws, beta, gam):
 
         res = fsolve(wpfun, 0.1, full_output=True,xtol=1e-06, maxfev=10000)
         
-        Wd[ii] = res[0]
+        Wd[ii] =  res[0][0]
         info = res[1]
         fval = info['fvec']
         if fval > 1e-5:
             print('warning - downscaling function:: '
                     'there is something wrong solving fsolve!')
+            # print(Cs[ii], Ws[ii], beta, gam)
+        Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
+        Nd[ii] = int( np.rint( Ns[ii] / beta))
+
+    # If Nd, Cd, Wd are a collection (example, list or array) and not a scalar, 
+    # return all collection.
+    Nd = Nd if not is_scalar else Nd[0]
+    Cd = Cd if not is_scalar else Cd[0]
+    Wd = Wd if not is_scalar else Wd[0]
+
+    return Nd, Cd, Wd
+
+def down_wei_beta_alpha_update(Ns, Cs, Ws, beta, gam):
+    '''
+    The difference with down_wei_beta_alpha is the use of try-except for errors,
+    In the case solve dont found the solution, we use the original ws value.
+    '''
+    Ns = np.asarray(Ns)  # check if scalar input - should be the same for N,C,W
+    Cs = np.asarray(Cs)
+    Ws = np.asarray(Ws)
+    # the three parameter mush have same shape - I only check one here
+    is_scalar = False if Cs.ndim > 0 else True
+    Ns.shape = (1,) * (1 - Ns.ndim) + Ns.shape
+    Cs.shape = (1,) * (1 - Cs.ndim) + Cs.shape
+    Ws.shape = (1,) * (1 - Ws.ndim) + Ws.shape
+    m = Cs.shape[0]  # length of parameter arrays = number of blocks=
+
+    # prob wet:: correct satellite N adding the average difference
+    pws = np.mean(Ns) / 365.25
+    Wd = np.zeros(m)
+    Cd = np.zeros(m)
+    Nd = np.zeros(m)
+    for ii in range(m):
+        cs = Cs[ii]
+        ws = Ws[ii]
+        rhs = (1/(gam*beta)) * (((2*ws*gamma(2 / ws))/((gamma(1/ws))**2)) + (gam-1)*pws)
+        wpfun = lambda w: (2*w*gamma(2 / w)/(gamma(1/w))**2) - rhs
+
+        try:
+            res = fsolve(wpfun, 0.1, full_output=True, xtol=1e-06, maxfev=10000)
+            Wd[ii] =  res[0][0]
+            info = res[1]
+            fval = info['fvec']
+            
+            if np.abs(fval) > 1e-5:
+                raise ValueError("Fsolve no convergió adecuadamente")
+
+        except (RuntimeError, ValueError) as e:
+            print(f"Warning: Problema en fsolve para ii={ii}. Se usará un valor por defecto.")
+            Wd[ii] = ws  # Usa ws como aproximación
+        
+        info = res[1]
+        fval = info['fvec']
+        if fval > 1e-5:
+            print('warning - downscaling function:: '
+                    'there is something wrong solving fsolve!')
+            # print(Cs[ii], Ws[ii], beta, gam)
         Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
         Nd[ii] = int( np.rint( Ns[ii] / beta))
 
@@ -337,9 +395,6 @@ def mev_fun(y, pr, N, C, W):
 # =========================================================================================================
 
 def mev_quant(Fi, x0, N, C, W, thresh=1):
-    import numpy as np
-    import scipy.optimize
-
     # Ensure Fi is an array
     Fi = np.asarray(Fi)
 
@@ -376,6 +431,51 @@ def mev_quant(Fi, x0, N, C, W, thresh=1):
 
     return quant, flags
 
+def mev_quant_update(Fi, x0, N, C, W, thresh=1):
+    Fi = np.asarray(Fi)
+    is_scalar = Fi.ndim == 0
+    Fi.shape = (1,) * (1 - Fi.ndim) + Fi.shape
+    m = np.size(Fi)
+    
+    quant = np.zeros(m)
+    flags = np.ones(m, dtype=bool)  # Flag de convergencia
+
+    for ii in range(m):
+        myfun = lambda y: mev_fun(y, Fi[ii], N, C, W)
+
+        # Intenta resolver con x0 inicial
+        res = scipy.optimize.fsolve(myfun, x0, full_output=True)
+        solution = res[0] if np.ndim(res[0]) == 0 else res[0].item()
+        fval = res[1]['fvec']
+        
+        # Si la solución no es buena, probar diferentes x0
+        if np.abs(fval) > 1e-5:
+            # print(f'⚠️ WARNING: fsolve falló para ii={ii}, probando otros x0')
+            x0_list = [x0 * 0.5, x0 * 2, 1.0, 10.0]  # Lista de valores iniciales alternativos
+            
+            for new_x0 in x0_list:
+                res = scipy.optimize.fsolve(myfun, new_x0, full_output=True)
+                solution = res[0] if np.ndim(res[0]) == 0 else res[0].item()
+                fval = res[1]['fvec']
+                
+                if np.abs(fval) <= 1e-5:
+                    # print(f'✅ Solución encontrada con x0 = {new_x0}')
+                    break
+            else:
+                # print(f'❌ ERROR: No se encontró solución para ii={ii} con ningún x0')
+                flags[ii] = False  # Marcar que esta solución falló
+        
+        quant[ii] = solution
+
+    # Añadir el umbral a los cuantiles
+    quant += thresh
+
+    # Convertir a escalar si la entrada era escalar
+    quant = quant[0] if is_scalar else quant
+    flags = flags[0] if is_scalar else flags
+
+    return quant, flags
+
 def pre_quantiles(data_in, Tr, lat, lon, dic_in, thresh):
     Fi = 1 - 1/Tr
     
@@ -388,7 +488,7 @@ def pre_quantiles(data_in, Tr, lat, lon, dic_in, thresh):
             if np.isnan(data_tmp).sum() == len(data_tmp):
                 continue
             else:
-                quant = mev_quant(Fi, x0, 
+                quant = mev_quant_update(Fi, x0, 
                                 data_in[dic_in['WD']][:,i,j].values, 
                                 data_in[dic_in['SC']][:,i,j].values, 
                                 data_in[dic_in['SH']][:,i,j].values,
@@ -414,7 +514,7 @@ def pre_quantiles_array(N, C, W, Tr, lat, lon, thresh):
             if np.isnan(data_tmp).sum() == len(data_tmp):
                 continue
             else:
-                quant, flag = mev_quant(Fi, x0, 
+                quant, flag = mev_quant_update(Fi, x0, 
                                 N[:,i,j], 
                                 C[:,i,j], 
                                 W[:,i,j],
@@ -560,6 +660,7 @@ def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
         NOBS[i] = len(sample[sample>=0])
 
         if NOBS[i] < OBS_min:
+            print('Not enough data')
             NCW[i,:] = np.array([0, np.nan, np.nan, yy])
 
         else:
@@ -608,7 +709,7 @@ def down_year_parameters(N, C, W, BETA, GAMMA):
                 Cd[:,i,j] = np.nan
                 Wd[:,i,j] = np.nan
             else:
-                Nd_, Cd_, Wd_ = down_wei_beta_alpha(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
+                Nd_, Cd_, Wd_ = down_wei_beta_alpha_update(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
                 Nd[:,i,j] = Nd_
                 Cd[:,i,j] = Cd_
                 Wd[:,i,j] = Wd_
