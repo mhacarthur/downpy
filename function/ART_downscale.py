@@ -300,9 +300,7 @@ def down_wei_beta_alpha(Ns, Cs, Ws, beta, gam):
     Cd = np.zeros(m)
     Nd = np.zeros(m)
     for ii in range(m):
-        cs = Cs[ii]
-        ws = Ws[ii]
-        rhs = (1/(gam*beta)) * (((2*ws*gamma(2 / ws))/((gamma(1/ws))**2)) + (gam-1)*pws)
+        rhs = (1/(gam*beta)) * (((2*Ws[ii]*gamma(2 / Ws[ii]))/((gamma(1/Ws[ii]))**2)) + (gam-1)*pws)
         wpfun = lambda w: (2*w*gamma(2 / w)/(gamma(1/w))**2) - rhs
 
         res = fsolve(wpfun, 0.1, full_output=True,xtol=1e-06, maxfev=10000)
@@ -314,7 +312,7 @@ def down_wei_beta_alpha(Ns, Cs, Ws, beta, gam):
             print('warning - downscaling function:: '
                     'there is something wrong solving fsolve!')
             # print(Cs[ii], Ws[ii], beta, gam)
-        Cd[ii] = (beta * Wd[ii]) * (cs / ws) * (gamma(1 / ws) / gamma(1 / Wd[ii]))
+        Cd[ii] = (beta * Wd[ii]) * (Cs[ii] / Ws[ii]) * (gamma(1 / Ws[ii]) / gamma(1 / Wd[ii]))
         Nd[ii] = int( np.rint( Ns[ii] / beta))
 
     # If Nd, Cd, Wd are a collection (example, list or array) and not a scalar, 
@@ -709,7 +707,8 @@ def down_year_parameters(N, C, W, BETA, GAMMA):
                 Cd[:,i,j] = np.nan
                 Wd[:,i,j] = np.nan
             else:
-                Nd_, Cd_, Wd_ = down_wei_beta_alpha_update(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
+                # Nd_, Cd_, Wd_ = down_wei_beta_alpha_update(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
+                Nd_, Cd_, Wd_ = down_wei_beta_alpha(N[:,i,j], C[:,i,j], W[:,i,j], BETA[i,j], GAMMA[i,j])
                 Nd[:,i,j] = Nd_
                 Cd[:,i,j] = Cd_
                 Wd[:,i,j] = Wd_
