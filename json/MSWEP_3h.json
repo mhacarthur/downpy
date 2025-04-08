@@ -2,8 +2,8 @@
     "file": "MSWEP_Italy_3h_1980_01_01_2023_12_31.nc",
 
     "L1":10,
-    "npix":2,
-    "thresh": 2,
+    "npix":1,
+    "thresh": 1,
 
     "maxmiss":40,
     "condition": "OVERLEAP",
@@ -19,7 +19,7 @@
 
     "ninterp":2000,
 
-    "acf": "mar",
+    "acf": "str",
     "corr_method":"pearson",
     "BETA_cores": 20,
     "GAMMA_cores": 27

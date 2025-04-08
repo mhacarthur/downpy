@@ -80,6 +80,10 @@ nlon = np.size(lons)
 nlat = np.size(lats)
 ntime = len(PRE_data['time'])
 
+year_vector = np.unique(pd.to_datetime(PRE_data['time']).year)
+
+PRE_data = PRE_data.where(PRE_data >= 0)  # Reemplaza valores negativos con NaN
+
 # year_vector = np.unique(pd.to_datetime(PRE_data['time']).year)
 
 # =============================================================================

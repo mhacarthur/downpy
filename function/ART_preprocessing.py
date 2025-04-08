@@ -217,88 +217,55 @@ def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix,
 
     return WET_MATRIX
 
-def space_time_scales_agregations_v2(box, L1, tscales, xscales, npix, thresh):
+def space_time_scales_agregations_v2(box, time_reso, tscales, xscales, npix, thresh):
     nlon = len(box['lon'].data)
     nlat = len(box['lat'].data)
     smax = box.shape[0]
     Swet_final = []
-    Swet_scale = []
 
     for st in tscales:
+        # if time_reso == '3h':
         input_data = box.resample(time='{}h'.format(st)).sum(dim='time', skipna = False)
-        # input_data = box.coarsen(time=st, boundary="trim").sum()
+        # elif time_reso == '1dy':
+        #     input_data = box.resample(time='{}d'.format(st)).sum(dim='time', skipna = False)
 
         for ix, sx in enumerate(xscales):
             if sx == 1:
-                rain_tmp = np.zeros([nlon, nlat, input_data.shape[2]])
                 wet_tmp = np.zeros([nlon, nlat])
                 for i in range(nlon):
                     for j in range(nlat):
                         wet_tmp[i,j] = wetfrac(input_data[i,j,:].data, thresh)
-                        rain_tmp[i,j] = input_data[i,j,:].data
                 Swet_final.append(np.nanmean(wet_tmp))
-                Swet_scale.append(L1)
 
             elif sx == smax:
                 rainfall_tmp = input_data.mean(axis=(0,1))
                 wet_tmp = wetfrac(rainfall_tmp, thresh)
                 Swet_final.append(np.nanmean(wet_tmp))
-                Swet_scale.append(L1*smax)
-            
+
             elif sx > 1 and sx < smax:
                 Swet_fraction = []
-                for i in range(nlon):
-                    for j in range(nlat):
-                        box_tmp = input_data[i:i+sx,j:j+sx,:]
-                        if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
-                            wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
-                            Swet_fraction.append(wet_tmp)
+                # for i in range(nlon):
+                #     for j in range(nlat):
+                #         box_tmp = input_data[i:i+sx,j:j+sx,:]
+                #         if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
+                #             wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
+                #             Swet_fraction.append(wet_tmp)
+                c1 = np.zeros(4)
+                c1[0] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                                skipna=False).dropna(dim='time', how='any'),
+                                thresh)
+                c1[1] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                                skipna=False).dropna(dim='time', how='any'),
+                                thresh)
+                c1[2] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                                skipna=False).dropna(dim='time', how='any'),
+                                thresh)
+                c1[3] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                                skipna=False).dropna(dim='time', how='any'),
+                                thresh)
+                Swet_fraction.append(np.mean(c1))
 
                 Swet_final.append(np.nanmean(Swet_fraction))
-                Swet_scale.append(L1*sx)
-
-    WET_MATRIX = np.reshape(Swet_final,(len(tscales),npix))
-    
-    return WET_MATRIX
-
-def space_time_scales_agregations_v3(box, L1, tscales, xscales, npix, thresh):
-    nlon = len(box['lon'].data)
-    nlat = len(box['lat'].data)
-    smax = box.shape[0]
-    Swet_final = []
-    Swet_scale = []
-
-    for st in tscales:
-        input_data = box.coarsen(time=st, boundary="trim").sum()
-
-        for ix, sx in enumerate(xscales):
-            if sx == 1:
-                rain_tmp = np.zeros([nlon, nlat, input_data.shape[2]])
-                wet_tmp = np.zeros([nlon, nlat])
-                for i in range(nlon):
-                    for j in range(nlat):
-                        wet_tmp[i,j] = wetfrac(input_data[i,j,:].data, thresh)
-                        rain_tmp[i,j] = input_data[i,j,:].data
-                Swet_final.append(np.nanmean(wet_tmp))
-                Swet_scale.append(L1)
-
-            elif sx == smax:
-                rainfall_tmp = input_data.mean(axis=(0,1))
-                wet_tmp = wetfrac(rainfall_tmp, thresh)
-                Swet_final.append(np.nanmean(wet_tmp))
-                Swet_scale.append(L1*smax)
-            
-            elif sx > 1 and sx < smax:
-                Swet_fraction = []
-                for i in range(nlon):
-                    for j in range(nlat):
-                        box_tmp = input_data[i:i+sx,j:j+sx,:]
-                        if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
-                            wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
-                            Swet_fraction.append(wet_tmp)
-
-                Swet_final.append(np.nanmean(Swet_fraction))
-                Swet_scale.append(L1*sx)
 
     WET_MATRIX = np.reshape(Swet_final,(len(tscales),npix))
     
@@ -388,9 +355,12 @@ def autocorrelation_neighborhood_v2(box, time_reso, t_target, thresh, cor_method
     for (lat1, lon1), (lat2, lon2) in points:
         # Extraer las series temporales de cada punto
         p1 = xdaily['PRE'][:, lat1, lon1].values
-        p1 = np.maximum(p1-thresh, 0.0)
+        p1 = np.maximum(p1-thresh, 0.0) # original
+        # p1 = p1[p1 > thresh] - thresh
+        
         p2 = xdaily['PRE'][:, lat2, lon2].values
-        p2 = np.maximum(p2-thresh, 0.0)
+        p2 = np.maximum(p2-thresh, 0.0) # original
+        # p2 = p2[p2 > thresh] - thresh
 
         # Eliminar NaNs en ambos arrays
         mask = ~np.isnan(p1) & ~np.isnan(p2)
@@ -400,8 +370,12 @@ def autocorrelation_neighborhood_v2(box, time_reso, t_target, thresh, cor_method
             corr = np.nan
             dist = np.nan
         else:
-            dist = haversine(lat1, lon1, lat2, lon2)
-            
+            dist = haversine(
+                            box['lat'].values[lat1], 
+                            box['lat'].values[lon1], 
+                            box['lat'].values[lat2], 
+                            box['lat'].values[lon2])
+
             if cor_method == 'spearman':
                 corr = spearmanr(p1_clean, p2_clean)[0]
             elif cor_method == 'pearson':
@@ -461,6 +435,8 @@ def spatial_correlation(DF_input, threshold, dir_base, cor_method):
 
                 correlation.append(corr)
 
+                ## WARNING!
+                ## Estas distancias no estan verificadas, si usan lat y lon o solo indices
                 # dist = haversine(pos1[0], pos1[1], pos2[0], pos2[1])
                 dist = haversine_zorzeto(pos1[0], pos1[1], pos2[0], pos2[1])
                 distance.append(dist)

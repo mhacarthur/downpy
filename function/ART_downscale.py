@@ -569,6 +569,32 @@ def gamma_manual(Ns, Cs, Ws, L, L0, par_acf, acf):
 # Weibull fit 
 # =========================================================================================================
 
+def wei_fit(sample):
+    ''' fit a 2-parameters Weibull distribution to a sample
+    by means of Probability Weighted Moments (PWM) matching (Greenwood 1979)
+    using only observations larger than a value 'threshold' are used for the fit
+    -- threshold without renormalization -- it assumes the values below are
+    not present. Default threshold = 0
+    INPUT:: sample (array with observations)
+            threshold (default is = 0)
+    OUTPUT::
+    returns dimension of the sample (n) (only values above threshold)
+    N represent the number of observations > threshold
+    Weibull scale (c) and shape (w) parameters '''
+    sample = np.asarray(sample) # from list to Numpy array
+    wets   = sample[sample > 0.0]
+    x      = np.sort(wets) # sort ascend by default
+    M0hat  = np.mean(x)
+    M1hat  = 0.0
+    n      = x.size # sample size
+    for ii in range(n):
+        real_ii = ii + 1
+        M1hat   = M1hat + x[ii]*(n - real_ii)
+    M1hat = M1hat/(n*(n-1))
+    c     = M0hat/gamma( np.log(M0hat/M1hat)/np.log(2)) # scale par
+    w     = np.log(2)/np.log(M0hat/(2*M1hat)) # shape par
+    return  n, c, w
+
 def wei_fit_update(sample):
     sample = np.asarray(sample) # from list to Numpy array
     x      = np.sort(sample) # sort ascend by default
@@ -659,17 +685,20 @@ def fit_yearly_weibull_update(xdata, thresh, maxmiss=36):
 
         if NOBS[i] < OBS_min:
             print('Not enough data')
-            NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+            NCW[i,:] = np.array([np.nan, np.nan, np.nan, yy])
 
         else:
-            excesses = sample[sample > thresh]
+            # excesses = sample[sample > thresh]
+            excesses = sample[sample > thresh] - thresh
+            
             Ni = np.size(excesses)
             if Ni == 0:
-                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+                NCW[i,:] = np.array([np.nan, np.nan, np.nan, yy])
             elif Ni == 1:
-                NCW[i,:] = np.array([0, np.nan, np.nan, yy])
+                NCW[i,:] = np.array([np.nan, np.nan, np.nan, yy])
             else:
                 NCW[i,0:3] = wei_fit_update(excesses)
+                NCW[i,0:3] = wei_fit(excesses)
                 NCW[i,3] = yy
 
     return NCW

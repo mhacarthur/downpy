@@ -2,8 +2,8 @@
     "file": "PERSIANN_Italy_1dy_2000_01_01_2023_12_31.nc",
 
     "L1":25,
-    "npix":2,
-    "thresh": 2,
+    "npix":1,
+    "thresh": 1,
 
     "maxmiss":40,
     "condition": "OVERLEAP",
@@ -13,11 +13,11 @@
     "dt": 3,
 
     "origin_x": 25,
-    "origin_t": 24,
+    "origin_t": 1,
     "target_x": 0,
-    "target_t": 24,
+    "target_t": 1,
 
-    "ninterp":2000,
+    "ninterp":3000,
 
     "acf": "mar",
     "corr_method":"pearson",
