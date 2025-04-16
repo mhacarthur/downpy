@@ -2,7 +2,7 @@
     "file": "GSMaP_Italy_3h_2002_01_01_2024_12_31.nc",
 
     "L1":10,
-    "npix":1,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,
@@ -21,6 +21,8 @@
 
     "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 25,
-    "GAMMA_cores": 27
+    "BETA_cores": 27,
+    "GAMMA_cores": 27,
+
+    "opt_method":"genetic"
 }

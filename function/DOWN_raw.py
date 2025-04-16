@@ -161,8 +161,13 @@ def downscale_pwet(xdata, *, thresh=1, dt=3, L1=10,
     NOTE: TESTED ONLY WITH TRMM - TMPA - 3B42 - 3 hourly * 0.25 deg product!
             FOR PRECIPITATION ACCUMULATION TARGETS AT THE DAILY SCALE
     ------------------------------------------------------------------------'''
+    # ====================================================================================
     pwets, xscales, tscales = compute_pwet_xr(xdata, thresh,
-                                    cube1size=3, dt=dt, tmax=48)
+                                    cube1size=3, dt=dt, tmax=48)    
+    # pwets, xscales, tscales = compute_pwet_xr_v2(xdata, dt=dt, thresh=1,
+    #                                 npix=3)
+    # ====================================================================================
+    
     resbeta = Taylor_beta(pwets, xscales, tscales, L1=L1,
                             target_x=target_x, target_t=target_t,
                             origin_x=origin_x, origin_t=origin_t,
@@ -217,7 +222,10 @@ def compute_pwet_xr(xray, thresh, *,
     pwets = np.zeros((ntscales, nsscales))
 
     def wetfrac(array, thresh):
-        return np.size(array[array > thresh])/np.size(array)
+        if len(array) == 0:
+            return np.nan
+        else:
+            return np.size(array[array > thresh])/np.size(array)
 
     for it, st in enumerate(tscales):
         datamat = xray.resample(time='{}h'.format(st)).sum(
@@ -275,6 +283,69 @@ def compute_pwet_xr(xray, thresh, *,
                 pwets[it, ix] = np.mean(c1)
     return pwets, xscales, tscales
 
+
+def compute_pwet_xr_v2(box, dt, npix, thresh):
+    tmax = 48
+    smax = box.shape[0] # max spatial scale
+    tscales = np.array([1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 36, 48, 96])*dt
+    tscales = tscales[tscales < tmax + 0.001]
+    xscales = np.arange(1, smax+1)
+    ntscales = np.size(tscales)
+    nsscales = np.size(xscales)
+    pwets = np.zeros((ntscales, nsscales))
+    
+    nlon = len(box['lon'].data)
+    nlat = len(box['lat'].data)
+    smax = box.shape[0]
+    Swet_final = []
+
+    for st in tscales:
+        input_data = box.resample(time='{}h'.format(st)).sum(dim='time', skipna = False)
+
+        for ix, sx in enumerate(xscales):
+            if sx == 1:
+                wet_tmp = np.zeros([nlon, nlat])
+                for i in range(nlon):
+                    for j in range(nlat):
+                        wet_tmp[i,j] = wetfrac(input_data[i,j,:].data, thresh)
+                Swet_final.append(np.nanmean(wet_tmp))
+
+            elif sx == smax:
+                rainfall_tmp = input_data.mean(axis=(0,1))
+                wet_tmp = wetfrac(rainfall_tmp, thresh)
+                Swet_final.append(np.nanmean(wet_tmp))
+
+            elif sx > 1 and sx < smax:
+                Swet_fraction = []
+                # ================================================================================
+                for i in range(nlon):
+                    for j in range(nlat):
+                        box_tmp = input_data[i:i+sx,j:j+sx,:]
+                        if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
+                            wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
+                            Swet_fraction.append(wet_tmp)
+                # ================================================================================
+                # c1 = np.zeros(4)
+                # c1[0] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[1] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[2] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[3] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # Swet_fraction.append(np.mean(c1))
+                # ================================================================================
+
+                Swet_final.append(np.nanmean(Swet_fraction))
+
+    WET_MATRIX = np.reshape(Swet_final,(len(tscales),npix))
+    
+    return WET_MATRIX, xscales, tscales
 
 def Taylor_beta(pwets, xscales, tscales, *, L1=10, target_x=0.001, target_t=24,
                     origin_x=10, origin_t=3, ninterp = 1000, plot=False):
@@ -661,7 +732,7 @@ def bin_ave_corr(vdist, vcorr, toll=0.3, plot=False):
     return res
 
 def down_corr(vdist, vcorr, L1, *, acf='mar',
-                use_ave=True, opt_method = 'genetic', disp=True, toll=0.005,
+                use_ave=True, opt_method = 'genetic', disp=False, toll=0.005,
                 plot=False):
     '''------------------------------------------------------------------------
     Downscale the correlation function obtained from spatial averages
@@ -966,7 +1037,8 @@ def downscale(xdata, Tr, *, thresh=1, L0, acf='mar', dt=3,
     res = {} # initialize dictionary for storing results
     xdata = xdata.where(xdata >= -0.001) # set negative values to np.nan if any
     xdaily0 = xdata.resample(time ='{}h'.format(tscale)).sum(dim='time', skipna=False)
-    xdaily = xdaily0.dropna(dim='time', how='any')
+    # xdaily = xdaily0.dropna(dim='time', how='any')
+    xdaily = xdaily0.dropna(dim='time', how='all')
     lons = xdata.lon.values
     lats = xdata.lat.values
     nlon = np.size(lons)
@@ -1045,8 +1117,12 @@ def downscale(xdata, Tr, *, thresh=1, L0, acf='mar', dt=3,
     res['Tr'] = Tr
     # x0 = 150.0
     x0 = 9.0*np.mean(CYd)
-    res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
-    res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
+    
+    # res['mev_d'] = mev_quant(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
+    # res['mev_s'] = mev_quant(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0] # Computes the MEV quantile for given non exceedance probability
+
+    res['mev_d'] = mev_quant_update(Fi, x0, NYd, CYd, WYd, thresh=thresh)[0]
+    res['mev_s'] = mev_quant_update(Fi, x0, NCWy[:,0], NCWy[:,1], NCWy[:,2],thresh=thresh)[0]
 
     res['YEARS'] = YEARSy # Add for Arturo
 

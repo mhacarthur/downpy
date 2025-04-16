@@ -21,6 +21,8 @@
 
     "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 20,
-    "GAMMA_cores": 27
+    "BETA_cores": 27,
+    "GAMMA_cores": 27,
+
+    "opt_method":"genetic"
 }

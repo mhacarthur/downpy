@@ -2,7 +2,7 @@
     "file": "PERSIANN_Italy_1dy_2000_01_01_2023_12_31.nc",
 
     "L1":25,
-    "npix":1,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,
@@ -21,6 +21,8 @@
 
     "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 20,
-    "GAMMA_cores": 27
+    "BETA_cores": 27,
+    "GAMMA_cores": 27,
+
+    "opt_method":"genetic"
 }

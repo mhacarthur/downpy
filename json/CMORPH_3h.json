@@ -2,7 +2,7 @@
     "file": "CMORPH_Italy_3hr_1998_01_01_2023_12_31.nc",
 
     "L1":25,
-    "npix":1,
+    "npix":2,
     "thresh": 1,
 
     "maxmiss":40,
@@ -19,10 +19,10 @@
 
     "ninterp":2000,
 
-    "acf": "str",
+    "acf": "mar",
     "corr_method":"pearson",
-    "BETA_cores": 25,
+    "BETA_cores": 27,
     "GAMMA_cores": 27,
 
-    "opt_method":"lbfgsb"
+    "opt_method":"genetic"
 }

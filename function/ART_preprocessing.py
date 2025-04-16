@@ -118,7 +118,10 @@ def create_box_v2(DATA_INPUT, clat, clon, npix):
     return box
 
 def wetfrac(array, thresh):
-    return np.size(array[array > thresh])/np.size(array)
+    if len(array) == 0:
+        return np.nan
+    else:
+        return np.size(array[array > thresh])/np.size(array)
 
 def space_time_scales_agregations(box_3h, L1, CONDITION, tscales, xscales, npix, thresh):
     nlon = len(box_3h['lon'].data)
@@ -244,26 +247,29 @@ def space_time_scales_agregations_v2(box, time_reso, tscales, xscales, npix, thr
 
             elif sx > 1 and sx < smax:
                 Swet_fraction = []
-                # for i in range(nlon):
-                #     for j in range(nlat):
-                #         box_tmp = input_data[i:i+sx,j:j+sx,:]
-                #         if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
-                #             wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
-                #             Swet_fraction.append(wet_tmp)
-                c1 = np.zeros(4)
-                c1[0] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
-                                skipna=False).dropna(dim='time', how='any'),
-                                thresh)
-                c1[1] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
-                                skipna=False).dropna(dim='time', how='any'),
-                                thresh)
-                c1[2] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
-                                skipna=False).dropna(dim='time', how='any'),
-                                thresh)
-                c1[3] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
-                                skipna=False).dropna(dim='time', how='any'),
-                                thresh)
-                Swet_fraction.append(np.mean(c1))
+                # ================================================================================
+                for i in range(nlon):
+                    for j in range(nlat):
+                        box_tmp = input_data[i:i+sx,j:j+sx,:]
+                        if box_tmp.shape[0] == sx and box_tmp.shape[1] == sx:
+                            wet_tmp = wetfrac(np.nanmean(box_tmp.data,axis=(0,1)), thresh)
+                            Swet_fraction.append(wet_tmp)
+                # ================================================================================
+                # c1 = np.zeros(4)
+                # c1[0] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[1] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[2] = wetfrac(input_data[:sx, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # c1[3] = wetfrac(input_data[-sx:, :sx, :].mean(dim=('lat', 'lon'),
+                #                 skipna=False).dropna(dim='time', how='any'),
+                #                 thresh)
+                # Swet_fraction.append(np.mean(c1))
+                # ================================================================================
 
                 Swet_final.append(np.nanmean(Swet_fraction))
 
