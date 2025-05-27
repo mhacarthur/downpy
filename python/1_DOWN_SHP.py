@@ -6,9 +6,13 @@ import argparse
 import numpy as np
 import xarray as xr
 import pandas as pd
+import geopandas as gpd
 from multiprocessing import Pool
 from joblib import Parallel, delayed
 from scipy.optimize import differential_evolution
+
+from shapely.geometry import Point
+from scipy.ndimage import binary_dilation
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -37,30 +41,10 @@ Tr = np.array([5, 10, 20, 50, 100])
 toll = 0.05
 
 # =============================================================================
-# # # TEST AREAS
-# # Coast area 
-# lon_min, lon_max, lat_min, lat_max, area, toll = 12, 12.5, 45.2, 45.7, 'COAST', 0.05
-# # Fast area
-# lon_min, lon_max, lat_min, lat_max, area, toll = 11.5, 12, 45.5, 46, 'FAST', 0.05
-# # Test area
-# lon_min, lon_max, lat_min, lat_max, area, toll = 11, 12.5, 45, 46.5, 'TEST', 0.05
-# # Veneto area
-# lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.002
-# # Italy
-# lon_min, lon_max, lat_min, lat_max, area, toll = 6.5, 19, 36.5, 48, 'ITALY', 0.002
+# # All Italy using shapefile and extending the area
+area = 'Italy-SHP'
 
-# =============================================================================
-# # Load Italian regions bounds from csv file
-bounds_file = os.path.join('..','csv','Regions_boundaries.csv')
-df_regiones = pd.read_csv(bounds_file)
-
-POS = 1
-
-lon_min, lon_max = df_regiones['DOW_lon_min'].values[POS], df_regiones['DOW_lon_max'].values[POS]
-lat_min, lat_max = df_regiones['DOW_lat_min'].values[POS], df_regiones['DOW_lat_max'].values[POS]
-area = df_regiones['region'].values[POS]
-
-print(f'Area: {area}')
+GEOMETRY = gpd.read_file(os.path.join('..','geometry','Veneto.geojson'))
 
 # =============================================================================
 json_read = f'../json/{product}_{time_reso}.json'
@@ -76,8 +60,8 @@ acf_fun = param['acf']
 
 NEIBHR = 2*param['npix']+1
 
-print(f'Json file   : {json_read.split('/')[-1]}')
 print(f'Region      : {area}')
+print(f'Json file   : {json_read.split('/')[-1]}')
 print(f'ACF func    : {param['acf']}')
 print(f'Threshold   : {thresh}')
 print(f'Threads     : {nproces}')
@@ -106,11 +90,6 @@ else:
 PRE_data = xr.open_dataset(dir_data)
 PRE_data = PRE_data.sel(time=PRE_data.time.dt.year.isin([np.arange(yy_s,yy_e+1)]))
 
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5' or product == 'GSMaP':
-    PRE_data = PRE_data.sel(lat=slice(lat_max+1.5, lat_min-1.5), lon=slice(lon_min-1.5, lon_max+1.5))
-else:
-    PRE_data = PRE_data.sel(lat=slice(lat_min-1.5, lat_max+1.5), lon=slice(lon_min-1.5, lon_max+1.5))
-
 lats = PRE_data['lat'].data
 lons = PRE_data['lon'].data
 
@@ -125,28 +104,44 @@ year_vector = np.unique(pd.to_datetime(PRE_data['time']).year)
 PRE_data = PRE_data.where(PRE_data >= 0)  # Reemplaza valores negativos con NaN
 
 # =============================================================================
-print(f'Extracting lat and lon points for area')
+expand = 2
+
+lon_flat = lon2d.ravel()
+lat_flat = lat2d.ravel()
+
+points = gpd.GeoSeries([Point(lon, lat) for lon, lat in zip(lon_flat, lat_flat)], crs="EPSG:4326")
+mask = points.within(GEOMETRY.union_all())
+
+valid_lons = lon_flat[mask]
+valid_lats = lat_flat[mask]
+
+mask_2d = mask.values.reshape(lon2d.shape)
+
+mask_expanded = binary_dilation(mask_2d, iterations=expand)
+data_masked = PRE_data['PRE'].where(mask_expanded) 
+
+i_valid, j_valid = np.where(mask_expanded)
+
+lat_valid = lat2d[i_valid, j_valid]
+lon_valid = lon2d[i_valid, j_valid]
+
+df_points = pd.DataFrame({
+    'ndices_lat': i_valid[0:2],
+    'ndices_lon': j_valid[0:2],
+    'lat_ref': lat_valid[0:2],
+    'lon_ref': lon_valid[0:2]
+})
+
+print(f'Number of valid points: {len(df_points)}')
 print()
-if product == 'MSWEP' or product == 'PERSIANN' or product == 'SM2RAIN' or product == 'ERA5' or product == 'GSMaP':
-    PRE_veneto = PRE_data.sel(lat=slice(lat_max, lat_min), lon=slice(lon_min, lon_max))
-else:
-    PRE_veneto = PRE_data.sel(lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max))
 
-lat_ref = PRE_veneto.lat.values
-lon_ref = PRE_veneto.lon.values
-
-ndices_lat = np.where(np.isin(lats, lat_ref))[0]
-ndices_lon = np.where(np.isin(lons, lon_ref))[0]
-
-lon2d_ref, lat2d_ref = np.meshgrid(lon_ref, lat_ref)
-
-del PRE_veneto
+# lon2d_ref, lat2d_ref = np.meshgrid(lat_valid, lon_valid)
 
 # =============================================================================
 def downscale_clear(DATA_3h,la,lo, param):
     
-    lat_c = lat_ref[la]
-    lon_c = lon_ref[lo]
+    lat_c = lats[la]
+    lon_c = lons[lo]
 
     Tr = np.array([5, 10, 20, 50, 100, 200])
 
@@ -184,10 +179,13 @@ start_time = time.time()
 
 def compute_for_point(args):
     DATA_3h, la, lo, param = args
+    # print(la,lo)
+    # print(lats[la], lons[lo])
     return la, lo, downscale_clear(DATA_3h,la,lo,param)
 
 with Pool(processes=param['BETA_cores']) as pool:
-    results = pool.map(compute_for_point, [(DATA_3h,la,lo,param) for la in range(len(lat_ref)) for lo in range(len(lon_ref))])
+    # results = pool.map(compute_for_point, [(DATA_3h,la,lo,param) for la in range(len((df_points['ndices_lat']))) for lo in range(len((df_points['ndices_lon'])))])
+    results = pool.map(compute_for_point, [(DATA_3h, la, lo, param) for la, lo in zip(df_points['ndices_lat'], df_points['ndices_lon'])])
 
 end_time = time.time()
 
@@ -218,7 +216,8 @@ INFO.to_csv('../csv/DOWN_INFO.csv',
 print(f'Creating Downscale data')
 Tr = np.array([5, 10, 20, 50, 100, 200])
 
-shape = (len(lat_ref), len(lon_ref))
+# shape = (len(df_points['lat_ref']), len(df_points['lon_ref']))
+shape = (nlat, nlon)
 
 NYs = np.full([years_num, *shape], np.nan)
 CYs = np.full([years_num, *shape], np.nan)
@@ -231,10 +230,10 @@ WYd = np.full([years_num, *shape], np.nan)
 Mev_d = np.zeros((len(Tr), *shape))
 Mev_s = np.zeros((len(Tr), *shape))
 
-BETA = np.zeros([len(lat_ref), len(lon_ref)])
-GAMMA = np.zeros([len(lat_ref), len(lon_ref)])
+BETA = np.zeros([nlat, nlon])
+GAMMA = np.zeros([nlat, nlon])
 
-FUNVAL = np.zeros([len(lat_ref), len(lon_ref)])
+FUNVAL = np.zeros([nlat, nlon])
 
 for la, lo, downres in results:
     
@@ -291,8 +290,8 @@ DOWN_xr = xr.Dataset(data_vars={
                     "GAMMA": (("lat","lon"), GAMMA),
                     "FUNVAL": (("lat","lon"), FUNVAL)
                     },
-    coords={'year':full_years,'Tr':Tr,'lat': lat_ref, 'lon': lon_ref},
-    attrs=dict(description=f"Downscaling for '{product}' in the '{area}' area bounded by longitudes {lon_min} to {lon_max} and latitudes {lat_min} to {lat_max}, using '{param['acf']}' as the acf function, '{param['thresh']} mm' threshold, '{param['corr_method']}' correlation, optimization method '{param['opt_method']}', toll equal '{toll}' and box size '{NEIBHR}x{NEIBHR}'."))
+    coords={'year':full_years,'Tr':Tr,'lat': lats, 'lon': lons},
+    attrs=dict(description=f"Downscaling for '{product}' in the Italy area, using '{param['acf']}' as the acf function, '{param['thresh']} mm' threshold, '{param['corr_method']}' correlation, optimization method '{param['opt_method']}', toll equal '{toll}' and box size '{NEIBHR}x{NEIBHR}'."))
 
 DOWN_xr.NYs.attrs["units"] = "day"
 DOWN_xr.NYs.attrs["long_name"] = "Number of wet days"
@@ -345,6 +344,6 @@ DOWN_xr.lon.attrs["units"] = "degrees_east"
 DOWN_xr.lon.attrs["long_name"] = "Longitude"
 
 # ==============================================================================
-DOWN_out = os.path.join('..','output',f'{POS}_{area}_DOWN_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{param['npix']}_thr_{param['thresh']}_acf_{param['acf']}_{param['opt_method']}_{param['corr_method']}.nc')
+DOWN_out = os.path.join('..','output',f'{area}_DOWN_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{param['npix']}_thr_{param['thresh']}_acf_{param['acf']}_{param['opt_method']}_{param['corr_method']}.nc')
 print(f'Export Data to {DOWN_out}')
 DOWN_xr.to_netcdf(DOWN_out)
