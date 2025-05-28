@@ -44,7 +44,8 @@ toll = 0.05
 # # All Italy using shapefile and extending the area
 area = 'Italy-SHP'
 
-GEOMETRY = gpd.read_file(os.path.join('..','geometry','Veneto.geojson'))
+# GEOMETRY = gpd.read_file(os.path.join('..','geometry','Veneto.geojson'))
+GEOMETRY = gpd.read_file(os.path.join('..','geometry','Valle_daosta.geojson'))
 
 # =============================================================================
 json_read = f'../json/{product}_{time_reso}.json'
@@ -126,10 +127,10 @@ lat_valid = lat2d[i_valid, j_valid]
 lon_valid = lon2d[i_valid, j_valid]
 
 df_points = pd.DataFrame({
-    'ndices_lat': i_valid[0:2],
-    'ndices_lon': j_valid[0:2],
-    'lat_ref': lat_valid[0:2],
-    'lon_ref': lon_valid[0:2]
+    'ndices_lat': i_valid,
+    'ndices_lon': j_valid,
+    'lat_ref': lat_valid,
+    'lon_ref': lon_valid
 })
 
 print(f'Number of valid points: {len(df_points)}')
@@ -184,7 +185,6 @@ def compute_for_point(args):
     return la, lo, downscale_clear(DATA_3h,la,lo,param)
 
 with Pool(processes=param['BETA_cores']) as pool:
-    # results = pool.map(compute_for_point, [(DATA_3h,la,lo,param) for la in range(len((df_points['ndices_lat']))) for lo in range(len((df_points['ndices_lon'])))])
     results = pool.map(compute_for_point, [(DATA_3h, la, lo, param) for la, lo in zip(df_points['ndices_lat'], df_points['ndices_lon'])])
 
 end_time = time.time()
