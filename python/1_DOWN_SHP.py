@@ -136,8 +136,6 @@ df_points = pd.DataFrame({
 print(f'Number of valid points: {len(df_points)}')
 print()
 
-# lon2d_ref, lat2d_ref = np.meshgrid(lat_valid, lon_valid)
-
 # =============================================================================
 def downscale_clear(DATA_3h,la,lo, param):
     
@@ -164,7 +162,6 @@ def downscale_clear(DATA_3h,la,lo, param):
 
 # =============================================================================
 PRE_data_T = PRE_data.transpose('lon', 'lat', 'time')
-# x = da.from_array(PRE_data_T['PRE'], chunks=(6, 6, 300))
 time_vector_dt = pd.to_datetime(PRE_data_T['PRE']['time'].values)
 DATA_3h = xr.DataArray(PRE_data_T['PRE'],  
                         coords={
@@ -180,8 +177,6 @@ start_time = time.time()
 
 def compute_for_point(args):
     DATA_3h, la, lo, param = args
-    # print(la,lo)
-    # print(lats[la], lons[lo])
     return la, lo, downscale_clear(DATA_3h,la,lo,param)
 
 with Pool(processes=param['BETA_cores']) as pool:
