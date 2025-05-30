@@ -3,7 +3,7 @@
 
     "L1":25,
     "npix":2,
-    "thresh": 2,
+    "thresh": 1,
 
     "maxmiss":40,
     "condition": "OVERLEAP",
