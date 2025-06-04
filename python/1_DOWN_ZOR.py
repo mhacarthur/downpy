@@ -45,7 +45,9 @@ toll = 0.05
 # # Test area
 # lon_min, lon_max, lat_min, lat_max, area, toll = 11, 12.5, 45, 46.5, 'TEST', 0.05
 # # Veneto area
-lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.05
+# lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.05
+# # Piemonte area
+lon_min, lon_max, lat_min, lat_max, area, toll = 6.6, 8, 43.5, 45, 'PIEMONTE', 0.05
 # # Italy
 # lon_min, lon_max, lat_min, lat_max, area, toll = 6.5, 19, 36.5, 48, 'ITALY', 0.002
 
@@ -59,8 +61,6 @@ lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO',
 # lon_min, lon_max = df_regiones['DOW_lon_min'].values[POS], df_regiones['DOW_lon_max'].values[POS]
 # lat_min, lat_max = df_regiones['DOW_lat_min'].values[POS], df_regiones['DOW_lat_max'].values[POS]
 # area = df_regiones['region'].values[POS]
-
-print(f'Area: {area}')
 
 # =============================================================================
 json_read = f'../json/{product}_{time_reso}.json'
@@ -76,6 +76,7 @@ acf_fun = param['acf']
 
 NEIBHR = 2*param['npix']+1
 
+print()
 print(f'Json file   : {json_read.split('/')[-1]}')
 print(f'Region      : {area}')
 print(f'ACF func    : {param['acf']}')
@@ -178,7 +179,7 @@ DATA_3h = xr.DataArray(PRE_data_T['PRE'],
                         dims=('lon', 'lat', 'time'))
 
 ## Test for GSMaP
-DATA_3h = DATA_3h / 2
+# DATA_3h = DATA_3h / 2
 
 # =============================================================================
 print(f'Start with downscale processes')
@@ -348,6 +349,6 @@ DOWN_xr.lon.attrs["units"] = "degrees_east"
 DOWN_xr.lon.attrs["long_name"] = "Longitude"
 
 # ==============================================================================
-DOWN_out = os.path.join('..','output',f'{area}_DOWN_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{param['npix']}_thr_{param['thresh']}_acf_{param['acf']}_{param['opt_method']}_{param['corr_method']}_div2.nc')
+DOWN_out = os.path.join('..','output',f'{area}_DOWN_{product}_{time_reso}_{yy_s}_{yy_e}_npix_{param['npix']}_thr_{param['thresh']}_acf_{param['acf']}_{param['opt_method']}_{param['corr_method']}.nc')
 print(f'Export Data to {DOWN_out}')
 DOWN_xr.to_netcdf(DOWN_out)
