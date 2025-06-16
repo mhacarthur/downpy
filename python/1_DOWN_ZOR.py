@@ -34,7 +34,6 @@ years_num = yy_e - yy_s + 1
 full_years = np.arange(yy_s, yy_e + 1)
 
 Tr = np.array([5, 10, 20, 50, 100])
-toll = 0.05
 
 # =============================================================================
 # # # TEST AREAS
@@ -45,9 +44,9 @@ toll = 0.05
 # # Test area
 # lon_min, lon_max, lat_min, lat_max, area, toll = 11, 12.5, 45, 46.5, 'TEST', 0.05
 # # Veneto area
-# lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.05
+lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.05
 # # Piemonte area
-lon_min, lon_max, lat_min, lat_max, area, toll = 6.6, 8, 43.5, 45, 'PIEMONTE', 0.05
+# lon_min, lon_max, lat_min, lat_max, area, toll = 6.6, 8, 43.5, 45, 'PIEMONTE', 0.05
 # # Italy
 # lon_min, lon_max, lat_min, lat_max, area, toll = 6.5, 19, 36.5, 48, 'ITALY', 0.002
 
@@ -177,9 +176,6 @@ DATA_3h = xr.DataArray(PRE_data_T['PRE'],
                             'lat':PRE_data_T['lat'].values, 
                             'time':time_vector_dt},
                         dims=('lon', 'lat', 'time'))
-
-## Test for GSMaP
-# DATA_3h = DATA_3h / 2
 
 # =============================================================================
 print(f'Start with downscale processes')
