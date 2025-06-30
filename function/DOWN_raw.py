@@ -610,14 +610,32 @@ def grid_corr(xdata, plot=True, thresh=0, cor_method='pearson'):
     res['vcorr'] = vcorr
     xx = np.linspace(np.min(vdist), np.max(vdist), 20)
     # fit curves to observed correlation
-    popt, pcov = curve_fit(str_exp_fun, vdist, vcorr, p0=np.array([50, 1]),
-                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
-    res['d0_s']= popt[0]
-    res['mu0_s'] = popt[1]
-    popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr, p0=np.array([50, 1]),
-                bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
-    res['eps_s'] = popt1[0]
-    res['alp_s'] = popt1[1]
+    #popt, pcov = curve_fit(
+    #            str_exp_fun, vdist, vcorr, 
+    #            p0=np.array([50, 1]),
+    #            bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+    try:
+        popt, pcov = curve_fit(
+                    str_exp_fun, vdist, vcorr,
+                    p0=np.array([50, 1]),
+                    bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])),
+                    maxfev=12000)
+
+        res['d0_s']= popt[0]
+        res['mu0_s'] = popt[1]
+        popt1, pcov1 = curve_fit(epl_fun, vdist, vcorr, p0=np.array([50, 1]),
+                    bounds=(np.array([0.0, 0.0]), np.array([+np.inf, +np.inf])))
+        res['eps_s'] = popt1[0]
+        res['alp_s'] = popt1[1]
+
+    except RuntimeError as e:
+        print(f"[WARNING] Ajuste falló: {e}")
+        popt = (np.nan, np.nan)
+        res['d0_s']= np.nan
+        res['mu0_s'] = np.nan
+        res['eps_s'] = np.nan
+        res['alp_s'] = np.nan
+    
     if plot:
         fig = plt.figure()
         plt.plot(vdist, vcorr, 'o', label='empirical')
@@ -768,7 +786,7 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
         bounds = [(0.0, 200.0),(0.0, 1.00)]
         resmin = minimize(myfun, x0, method="L-BFGS-B",
                                 bounds=bounds, #original ((0, 2000), (0, 10))
-                                options={'gtol': 1e-8, 'disp': True})
+                                options={'gtol': 1e-8, 'disp': False})
         res[parnames[0]] = resmin.x[0]
         res[parnames[1]] = resmin.x[1]
         res['success'] = resmin.success
@@ -776,7 +794,7 @@ def down_corr(vdist, vcorr, L1, *, acf='mar',
 
     elif opt_method == 'genetic':
         bounds = [(0.0, 200.0),(0.0, 1.00)]
-        resmin = differential_evolution(myfun, bounds, disp=disp,
+        resmin = differential_evolution(myfun, bounds, disp=False,
                                             tol = toll, atol = toll)
         res[parnames[0]] = resmin.x[0]
         res[parnames[1]] = resmin.x[1]
@@ -1065,7 +1083,7 @@ def downscale(xdata, Tr, *, thresh=1, L0, acf='mar', dt=3,
     # c_excesses = tsc.values[tsc.values > thresh]
     c_excesses = tsc.values[tsc.values > thresh] - thresh
     # ===========================================================================
-    
+
     NCW = wei_fit(c_excesses)
     pws = NCW[0]/xdaily.shape[2]
     # pws = NCW[0]/xdaily['PRE'].shape[2]
@@ -1075,9 +1093,17 @@ def downscale(xdata, Tr, *, thresh=1, L0, acf='mar', dt=3,
 
     # Taylor Hypothesis for downscaling intermittency
     print('Downscaling Intermittency')
-    taylor = downscale_pwet(xdata, thresh=thresh, dt=dt, L1=L1,
-                    target_x=L0, target_t=tscale,
-                    origin_x=L1, origin_t=tscale, ninterp=1000, plot=plot)
+    # taylor = downscale_pwet(xdata, thresh=thresh, dt=dt, L1=L1,
+    #                 target_x=L0, target_t=tscale,
+    #                 origin_x=L1, origin_t=tscale, ninterp=1000, plot=plot)
+    try:
+        taylor = downscale_pwet(xdata, thresh=1, dt=dt, L1=L1,
+                        target_x=L0, target_t=tscale,
+                        origin_x=L1, origin_t=tscale, ninterp=1000, plot='False')
+    except Exception as e:
+        taylor = {}
+        taylor['beta'] = -999.9
+        print(f"Error in downscale_pwet: {e}")
 
     print('Downscaling the correlation')
     parnames = ['eps', 'alp'] if acf == 'mar' else ['d0', 'mu0']
