@@ -33,10 +33,9 @@ yy_e = vars(parser.parse_args())['yye']
 years_num = yy_e - yy_s + 1
 full_years = np.arange(yy_s, yy_e + 1)
 
+# =============================================================================
 Tr = np.array([5, 10, 20, 50, 100])
 
-# =============================================================================
-# # # TEST AREAS
 # # Coast area 
 # lon_min, lon_max, lat_min, lat_max, area, toll = 12, 12.5, 45.2, 45.7, 'COAST', 0.05
 # # Fast area
@@ -44,22 +43,9 @@ Tr = np.array([5, 10, 20, 50, 100])
 # # Test area
 # lon_min, lon_max, lat_min, lat_max, area, toll = 11, 12.5, 45, 46.5, 'TEST', 0.05
 # # Veneto area
-lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.05
-# # Piemonte area
-# lon_min, lon_max, lat_min, lat_max, area, toll = 6.6, 8, 43.5, 45, 'PIEMONTE', 0.05
+# lon_min, lon_max, lat_min, lat_max, area, toll = 10.5, 13.5, 44.5, 47, 'VENETO', 0.002
 # # Italy
-# lon_min, lon_max, lat_min, lat_max, area, toll = 6.5, 19, 36.5, 48, 'ITALY', 0.002
-
-# =============================================================================
-# # Load Italian regions bounds from csv file
-# bounds_file = os.path.join('..','csv','Regions_boundaries.csv')
-# df_regiones = pd.read_csv(bounds_file)
-
-# POS = 1
-
-# lon_min, lon_max = df_regiones['DOW_lon_min'].values[POS], df_regiones['DOW_lon_max'].values[POS]
-# lat_min, lat_max = df_regiones['DOW_lat_min'].values[POS], df_regiones['DOW_lat_max'].values[POS]
-# area = df_regiones['region'].values[POS]
+lon_min, lon_max, lat_min, lat_max, area, toll = 6.5, 19, 36.5, 48, 'ITALY', 0.002
 
 # =============================================================================
 json_read = f'../json/{product}_{time_reso}.json'
@@ -75,7 +61,6 @@ acf_fun = param['acf']
 
 NEIBHR = 2*param['npix']+1
 
-print()
 print(f'Json file   : {json_read.split('/')[-1]}')
 print(f'Region      : {area}')
 print(f'ACF func    : {param['acf']}')
@@ -88,7 +73,7 @@ print()
 print(f'Reading data: {param['file']}')
 print()
 dir_data_1 = os.path.join(f'../data/{param["file"]}')
-dir_base = os.path.join('/', 'media', 'arturo', 'T9', 'Data', 'Italy', 'Satellite')
+dir_base = os.path.join('/', 'media', 'arturo', 'Arturo', 'Data', 'Italy', 'Satellite')
 if product == 'SM2RAIN':
     dir_data_2 = os.path.join(dir_base,product,'ASCAT',time_reso,param['file'])
 else:
@@ -144,6 +129,8 @@ del PRE_veneto
 
 # =============================================================================
 def downscale_clear(DATA_3h,la,lo, param):
+
+    print(f'Point: {la,lo}')
     
     lat_c = lat_ref[la]
     lon_c = lon_ref[lo]
@@ -211,7 +198,7 @@ INFO = pd.DataFrame({
 
 INFO.to_csv('../csv/DOWN_INFO.csv', 
             mode='a', 
-            header=not os.path.exists('../csv/BETA_INFO.csv'), 
+            header=not pd.io.common.file_exists('../csv/BETA_INFO.csv'), 
             index=False)
 
 # ==============================================================================
