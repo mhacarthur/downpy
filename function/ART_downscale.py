@@ -491,7 +491,7 @@ def pre_quantiles(data_in, Tr, lat, lon, dic_in, thresh):
                                 data_in[dic_in['SC']][:,i,j].values, 
                                 data_in[dic_in['SH']][:,i,j].values,
                                 thresh=thresh)[0]
-                QUANTILE[:,i,j] = quants
+                QUANTILE[:,i,j] = quant
 
     return QUANTILE
 
