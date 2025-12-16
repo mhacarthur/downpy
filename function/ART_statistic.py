@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import pandas as pd
 import scipy.stats as stats
 
 # Root-Mean-Square Deviation (RMSD)
@@ -53,3 +55,30 @@ def ISIMIP_QM_ALL(obs, sat):
     corrected_sat = np.interp(sat, sat_quantiles, obs_quantiles)
 
     return corrected_sat
+
+def extract_all_quantiles(product):
+    dir_base = os.path.join('/','media','arturo','T9','Data','Italy')
+    hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+    data = pd.HDFStore(hdf5_file, mode='r')
+
+    all_keys = data.keys()
+    all_QUANTILES = [k for k in all_keys if k.endswith("/QUANTILES")]
+    
+    RE_raw = []
+    RE_down = []
+
+    for nn in range(len(all_QUANTILES)):
+        DICT = data[all_QUANTILES[nn]]
+        RE_raw_ = DICT.RE_raw.values[3]
+        RE_down_ = DICT.RE_down.values[3]
+    
+        RE_raw.append(RE_raw_)
+        RE_down.append(RE_down_)
+    
+    RE_raw = np.array(RE_raw)
+    RE_down = np.array(RE_down)
+    
+    RE_raw = np.where(RE_raw >= 1.3, np.nan, RE_raw)
+    RE_down = np.where(RE_down >= 1.3, np.nan, RE_down)
+    
+    return RE_raw, RE_down
