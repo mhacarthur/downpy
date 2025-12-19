@@ -82,3 +82,72 @@ def extract_all_quantiles(product):
     RE_down = np.where(RE_down >= 1.3, np.nan, RE_down)
     
     return RE_raw, RE_down
+
+def get_relative_error(product, val_max=1.1):
+
+    dir_base = os.path.join('/','media','arturo','T9','Data','Italy')
+    list_remove = ['IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 'IT-750_450_FTS_1440_QCv4.csv']
+
+    hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+    data = pd.HDFStore(hdf5_file, mode='r')
+
+    keys = data.keys()
+    keys_QUANTILES = [k for k in keys if k.endswith("/QUANTILES")]
+    keys_INFO = [k for k in keys if k.endswith('/INFO')]
+
+    stations = []
+    lats, lons, elevs = [], [], []
+    RED, REDn = [], []
+    RER, RERn = [], []
+    for nn in range(len(keys_INFO)):
+        station = keys_INFO[nn].split('/')[2]
+        
+        if station in list_remove:
+            continue
+        else:
+            lat = data[keys_INFO[nn]]['lat_obs'].values[0]
+            lon = data[keys_INFO[nn]]['lon_obs'].values[0]
+            elev = data[keys_INFO[nn]]['elev_obs'].values[0]
+            RED_ = data[keys_QUANTILES[nn]].RE_down.values[3]
+            RER_ = data[keys_QUANTILES[nn]].RE_raw.values[3]
+
+            stations.append(station)
+            lats.append(lat)
+            lons.append(lon)
+            elevs.append(elev)
+            RED.append(RED_)
+            RER.append(RER_)
+
+    REDn = (RED - np.nanmin(RED))/(np.nanmax(RED) - np.nanmin(RED))
+    RERn = (RER - np.nanmin(RER))/(np.nanmax(RER) - np.nanmin(RER))
+
+    DF_DATA = pd.DataFrame({'STATION':stations, 'LON':lons, 'LAT':lats, 'ELEV':elevs, 'RER':RER, 'RERn':RERn, 'RED':RED, 'REDn':REDn})
+    DF_DATA.loc[DF_DATA['RER'] > val_max, 'RER'] = np.nan
+    DF_DATA.loc[DF_DATA['RER'].isna(), 'RED'] = np.nan
+
+    return DF_DATA
+
+def DF_elevation(DF):
+    group_colors = {'≤25%':  '#2c7bb6','25–50%': '#abd9e9','50–75%': '#fdae61','>75%':   '#d7191c'}
+    
+    Elevation_norm = (DF.ELEV.values - np.min(DF.ELEV.values)) / (np.max(DF.ELEV.values) - np.min(DF.ELEV.values))
+
+    DF['ELEVn'] = Elevation_norm
+    DF['ELEV_group'] = pd.qcut(DF['ELEV'],4,labels=['≤25%', '25–50%', '50–75%', '>75%'],duplicates='drop')
+    DF['ELEV_group_num'] = pd.qcut(DF['ELEV'],q=4,labels=[1, 2, 3, 4]).astype(int)
+    DF['ELEV_color'] = DF['ELEV_group'].map(group_colors)
+    
+    GROUP1 = DF[DF['ELEV_group_num']==1]
+    GROUP2 = DF[DF['ELEV_group_num']==2]
+    GROUP3 = DF[DF['ELEV_group_num']==3]
+    GROUP4 = DF[DF['ELEV_group_num']==4]
+    
+    mean_g1 = np.nanmean(GROUP1.RED)
+    mean_g2 = np.nanmean(GROUP2.RED)
+    mean_g3 = np.nanmean(GROUP3.RED)
+    mean_g4 = np.nanmean(GROUP4.RED)
+    
+    DF_ALL = [GROUP1, GROUP2, GROUP3, GROUP4]
+    means = [mean_g1, mean_g2, mean_g3, mean_g4]
+    
+    return DF_ALL, means
