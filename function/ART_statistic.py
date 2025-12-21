@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from sklearn.cluster import KMeans
 
 # Root-Mean-Square Deviation (RMSD)
 def calculate_rmsd(obs, mod):
@@ -132,14 +133,14 @@ def DF_elevation(DF):
     Elevation_norm = (DF.ELEV.values - np.min(DF.ELEV.values)) / (np.max(DF.ELEV.values) - np.min(DF.ELEV.values))
 
     DF['ELEVn'] = Elevation_norm
-    DF['ELEV_group'] = pd.qcut(DF['ELEV'],4,labels=['≤25%', '25–50%', '50–75%', '>75%'],duplicates='drop')
-    DF['ELEV_group_num'] = pd.qcut(DF['ELEV'],q=4,labels=[1, 2, 3, 4]).astype(int)
-    DF['ELEV_color'] = DF['ELEV_group'].map(group_colors)
+    DF['ELEV_QUARTILE'] = pd.qcut(DF['ELEV'],4,labels=['≤25%', '25–50%', '50–75%', '>75%'],duplicates='drop')
+    DF['ELEV_QUARTILEn'] = pd.qcut(DF['ELEV'],q=4,labels=[1, 2, 3, 4]).astype(int)
+    DF['ELEV_color'] = DF['ELEV_QUARTILE'].map(group_colors)
     
-    GROUP1 = DF[DF['ELEV_group_num']==1]
-    GROUP2 = DF[DF['ELEV_group_num']==2]
-    GROUP3 = DF[DF['ELEV_group_num']==3]
-    GROUP4 = DF[DF['ELEV_group_num']==4]
+    GROUP1 = DF[DF['ELEV_QUARTILEn']==1]
+    GROUP2 = DF[DF['ELEV_QUARTILEn']==2]
+    GROUP3 = DF[DF['ELEV_QUARTILEn']==3]
+    GROUP4 = DF[DF['ELEV_QUARTILEn']==4]
     
     mean_g1 = np.nanmean(GROUP1.RED)
     mean_g2 = np.nanmean(GROUP2.RED)
@@ -150,3 +151,61 @@ def DF_elevation(DF):
     means = [mean_g1, mean_g2, mean_g3, mean_g4]
     
     return DF_ALL, means
+
+def elevation_kmeans_robusto(DF_input):
+    """
+    Versión robusta con verificación completa
+    """
+    DF = DF_input.copy()
+    
+    # Verificar que existe columna ELEV
+    if 'ELEV' not in DF.columns:
+        raise ValueError("DataFrame debe tener columna 'ELEV'")
+    
+    # Extraer alturas
+    alturas = DF.ELEV.values.reshape(-1, 1)
+    
+    # Aplicar K-means
+    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+    clusters_originales = kmeans.fit_predict(alturas)
+    
+    # Crear DataFrame temporal para análisis
+    temp_df = pd.DataFrame({
+        'index': DF.index,
+        'ELEV': alturas.flatten(),
+        'cluster_orig': clusters_originales
+    })
+    
+    # Calcular estadísticas por cluster original
+    stats = temp_df.groupby('cluster_orig').agg({
+        'ELEV': ['mean', 'min', 'max', 'count']
+    }).round(2)
+    
+    stats.columns = ['media', 'minimo', 'maximo', 'conteo']
+    stats = stats.sort_values('media')  # Ordenar por altura media
+    
+    # Crear mapeo de reordenamiento
+    # Orden ascendente: cluster con menor altura media -> grupo 1
+    cluster_mapping = {}
+    for nuevo_grupo, cluster_orig in enumerate(stats.index, 1):
+        cluster_mapping[cluster_orig] = nuevo_grupo
+    
+    # Aplicar reordenamiento
+    DF['ELEV_KMEANS'] = temp_df['cluster_orig'].map(cluster_mapping).values
+    
+    # Incluir los grupos en un solo DF
+    DF1 = DF[DF.ELEV_KMEANS==1]
+    DF2 = DF[DF.ELEV_KMEANS==2]
+    DF3 = DF[DF.ELEV_KMEANS==3]
+    DF4 = DF[DF.ELEV_KMEANS==4]
+
+    mean_g1 = np.nanmean(DF1.RED)
+    mean_g2 = np.nanmean(DF2.RED)
+    mean_g3 = np.nanmean(DF3.RED)
+    mean_g4 = np.nanmean(DF4.RED)
+
+    DF_ALL = [DF1, DF2, DF3, DF4]
+    means = [mean_g1, mean_g2, mean_g3, mean_g4]
+    
+    return DF_ALL, means
+
