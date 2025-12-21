@@ -83,9 +83,8 @@ def extract_all_quantiles(product):
     
     return RE_raw, RE_down
 
-def get_relative_error(product, val_max=1.1):
+def get_relative_error(product, dir_base, val_max=1.1):
 
-    dir_base = os.path.join('/','media','arturo','T9','Data','Italy')
     list_remove = ['IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 'IT-750_450_FTS_1440_QCv4.csv']
 
     hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
