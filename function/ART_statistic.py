@@ -2,7 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression
 
 # Root-Mean-Square Deviation (RMSD)
 def calculate_rmsd(obs, mod):
@@ -86,7 +88,12 @@ def extract_all_quantiles(product):
 
 def get_relative_error(product, dir_base, val_max=1.1):
 
-    list_remove = ['IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 'IT-750_450_FTS_1440_QCv4.csv']
+    list_remove = ['IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
+                   'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
+                   'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
+                   'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
+                   'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
+                   'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv']
 
     hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
     data = pd.HDFStore(hdf5_file, mode='r')
@@ -97,6 +104,7 @@ def get_relative_error(product, dir_base, val_max=1.1):
 
     stations = []
     lats, lons, elevs = [], [], []
+    OBS, DOWN = [], []
     RED, REDn = [], []
     RER, RERn = [], []
     for nn in range(len(keys_INFO)):
@@ -108,6 +116,8 @@ def get_relative_error(product, dir_base, val_max=1.1):
             lat = data[keys_INFO[nn]]['lat_obs'].values[0]
             lon = data[keys_INFO[nn]]['lon_obs'].values[0]
             elev = data[keys_INFO[nn]]['elev_obs'].values[0]
+            OBS_ = data[keys_QUANTILES[nn]].OBS.values[3]
+            DOWN_ = data[keys_QUANTILES[nn]].SAT_down.values[3]
             RED_ = data[keys_QUANTILES[nn]].RE_down.values[3]
             RER_ = data[keys_QUANTILES[nn]].RE_raw.values[3]
 
@@ -115,13 +125,15 @@ def get_relative_error(product, dir_base, val_max=1.1):
             lats.append(lat)
             lons.append(lon)
             elevs.append(elev)
+            OBS.append(OBS_)
+            DOWN.append(DOWN_)
             RED.append(RED_)
             RER.append(RER_)
 
     REDn = (RED - np.nanmin(RED))/(np.nanmax(RED) - np.nanmin(RED))
     RERn = (RER - np.nanmin(RER))/(np.nanmax(RER) - np.nanmin(RER))
 
-    DF_DATA = pd.DataFrame({'STATION':stations, 'LON':lons, 'LAT':lats, 'ELEV':elevs, 'RER':RER, 'RERn':RERn, 'RED':RED, 'REDn':REDn})
+    DF_DATA = pd.DataFrame({'STATION':stations, 'LON':lons, 'LAT':lats, 'ELEV':elevs, 'OBS':OBS, 'DOWN':DOWN, 'RER':RER, 'RERn':RERn, 'RED':RED, 'REDn':REDn})
     DF_DATA.loc[DF_DATA['RER'] > val_max, 'RER'] = np.nan
     DF_DATA.loc[DF_DATA['RER'].isna(), 'RED'] = np.nan
 
@@ -209,3 +221,26 @@ def elevation_kmeans_robusto(DF_input):
     
     return DF_ALL, means
 
+def NAN_spearman(DF):
+    mask = np.where((~np.isnan(DF.OBS.values))&(~np.isnan(DF.DOWN.values)))
+    corr_, _ = pearsonr(DF.OBS.values[mask], DF.DOWN.values[mask])
+    return float(np.round(corr_,3))
+
+def linear_regression(DF):
+    OBS = DF.OBS.values
+    DOWN = DF.DOWN.values
+    mask = ~np.isnan(OBS) & ~np.isnan(DOWN)
+    obs_clean = OBS[mask].reshape(-1, 1) 
+    down_clean = DOWN[mask]
+
+    reg = LinearRegression()
+    reg.fit(obs_clean, down_clean)
+
+    # Obtener el slope (pendiente)
+    slope = reg.coef_[0]
+    intercept = reg.intercept_
+    
+    x_line = np.linspace(np.min(obs_clean), np.max(obs_clean), 100).reshape(-1, 1)
+    y_line = reg.predict(x_line)
+
+    return x_line, y_line, slope
