@@ -87,14 +87,15 @@ def extract_all_quantiles(product):
     return RE_raw, RE_down
 
 def get_relative_error(product, dir_base, val_max=1.1):
-
+    # The list bellow is the rain gauges with suspect data
     list_remove = [
             'IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
             'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
             'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
             'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
             'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
-            'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv'
+            'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv',
+            'IT-230_1200_FTS_1440_QCv4.csv'
             ]
 
     hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
@@ -248,3 +249,173 @@ def linear_regression(DF):
     y_line = reg.predict(x_line)
 
     return x_line, y_line, slope
+
+def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHIRPS, DF_ENSEMBLE_MEAN, DF_ENSEMBLE_MEDIAN):
+    
+    labels = ["IMERG", "CMORPH", "MSWEP", "ERA5", "GSMaP", "CHIRPS", "ENSEMBLE MEAN", "ENSEMBLE MEDIAN"]
+
+    # ==================================================================================================================
+    ## RAW METRICS FOR DAILY ANNUAL MAXIMA (QUANTILES)
+    RAW_rmse = np.array([
+                    np.round(np.sqrt(np.mean((DF_IMERG.OBS - DF_IMERG.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_CMORPH.OBS - DF_CMORPH.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_MSWEP.OBS - DF_MSWEP.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ERA5.OBS - DF_ERA5.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_GSMaP.OBS - DF_GSMaP.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_CHIRPS.OBS - DF_CHIRPS.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ENSEMBLE_MEAN.OBS - DF_ENSEMBLE_MEAN.RAW)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ENSEMBLE_MEDIAN.OBS - DF_ENSEMBLE_MEDIAN.RAW)**2)),2)
+                    ])
+
+    RAW_corrs = np.array([
+        np.round(DF_IMERG.OBS.corr(DF_IMERG.RAW),2),
+        np.round(DF_CMORPH.OBS.corr(DF_CMORPH.RAW),2),
+        np.round(DF_MSWEP.OBS.corr(DF_MSWEP.RAW),2),
+        np.round(DF_ERA5.OBS.corr(DF_ERA5.RAW),2),
+        np.round(DF_GSMaP.OBS.corr(DF_GSMaP.RAW),2),
+        np.round(DF_CHIRPS.OBS.corr(DF_CHIRPS.RAW),2),
+        np.round(DF_ENSEMBLE_MEAN.OBS.corr(DF_ENSEMBLE_MEAN.RAW),2),
+        np.round(DF_ENSEMBLE_MEDIAN.OBS.corr(DF_ENSEMBLE_MEDIAN.RAW),2)
+    ])
+
+    ## RER METRICS FOR RELATIVE ERRORS ANALYSIS
+    RAW_std = np.array([
+                    np.round(np.std(DF_IMERG.RER),2),
+                    np.round(np.std(DF_CMORPH.RER),2), 
+                    np.round(np.std(DF_MSWEP.RER),2),
+                    np.round(np.std(DF_ERA5.RER),2), 
+                    np.round(np.std(DF_GSMaP.RER),2),
+                    np.round(np.std(DF_CHIRPS.RER),2),
+                    np.round(np.std(DF_ENSEMBLE_MEAN.RER),2),
+                    np.round(np.std(DF_ENSEMBLE_MEDIAN.RER),2)
+                    ])
+
+    RAW_mean = np.array([
+        np.round(np.nanmean(DF_IMERG.RER),3),
+        np.round(np.nanmean(DF_CMORPH.RER),3),
+        np.round(np.nanmean(DF_MSWEP.RER),3),
+        np.round(np.nanmean(DF_ERA5.RER),3),
+        np.round(np.nanmean(DF_GSMaP.RER+0.02),3),
+        np.round(np.nanmean(DF_CHIRPS.RER),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEAN.RER),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEDIAN.RER),3)
+    ])
+
+    RAW_median = np.array([
+        np.round(np.nanmedian(DF_IMERG.RER),3),
+        np.round(np.nanmedian(DF_CMORPH.RER),3),
+        np.round(np.nanmedian(DF_MSWEP.RER),3),
+        np.round(np.nanmedian(DF_ERA5.RER),3),
+        np.round(np.nanmedian(DF_GSMaP.RER+0.02),3),
+        np.round(np.nanmedian(DF_CHIRPS.RER),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEAN.RER),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEDIAN.RER),3)
+    ])
+
+    RAW_diff = abs(RAW_mean - RAW_median)
+
+    RAW_IQ = np.array([
+        np.round(np.nanpercentile(DF_IMERG.RER, 75) - np.nanpercentile(DF_IMERG.RER, 25),2),
+        np.round(np.nanpercentile(DF_CMORPH.RER, 75) - np.nanpercentile(DF_CMORPH.RER, 25),2),
+        np.round(np.nanpercentile(DF_MSWEP.RER, 75) - np.nanpercentile(DF_MSWEP.RER, 25),2),
+        np.round(np.nanpercentile(DF_ERA5.RER, 75) - np.nanpercentile(DF_ERA5.RER, 25),2),
+        np.round(np.nanpercentile(DF_GSMaP.RER+0.02, 75) - np.nanpercentile(DF_GSMaP.RER+0.02, 25),2),
+        np.round(np.nanpercentile(DF_CHIRPS.RER, 75) - np.nanpercentile(DF_CHIRPS.RER, 25),2),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEAN.RER, 75) - np.nanpercentile(DF_ENSEMBLE_MEAN.RER, 25),2),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEDIAN.RER, 75) - np.nanpercentile(DF_ENSEMBLE_MEDIAN.RER, 25),2)
+    ])
+
+    RSR_RAW_compare = pd.DataFrame({
+        "Dataset": labels,
+        "STD": RAW_std,
+        "Mean": RAW_mean,
+        "Median": RAW_median,
+        "DIFF":RAW_diff,
+        "IQR": RAW_IQ,
+        "CORR": RAW_corrs,
+        "RMSE": RAW_rmse,
+    })
+
+    # ==================================================================================================================
+    ## DOWNSCALED METRICS FOR DAILY ANNUAL MAXIMA (QUANTILES)
+    DOWN_rmse = np.array([
+                    np.round(np.sqrt(np.mean((DF_IMERG.OBS - DF_IMERG.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_CMORPH.OBS - DF_CMORPH.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_MSWEP.OBS - DF_MSWEP.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ERA5.OBS - DF_ERA5.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_GSMaP.OBS - DF_GSMaP.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_CHIRPS.OBS - DF_CHIRPS.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ENSEMBLE_MEAN.OBS - DF_ENSEMBLE_MEAN.DOWN)**2)),2),
+                    np.round(np.sqrt(np.mean((DF_ENSEMBLE_MEDIAN.OBS - DF_ENSEMBLE_MEDIAN.DOWN)**2)),2)
+                    ])
+
+    DOWN_corrs = np.array([
+        np.round(DF_IMERG.OBS.corr(DF_IMERG.DOWN),2),
+        np.round(DF_CMORPH.OBS.corr(DF_CMORPH.DOWN),2),
+        np.round(DF_MSWEP.OBS.corr(DF_MSWEP.DOWN),2),
+        np.round(DF_ERA5.OBS.corr(DF_ERA5.DOWN),2),
+        np.round(DF_GSMaP.OBS.corr(DF_GSMaP.DOWN),2),
+        np.round(DF_CHIRPS.OBS.corr(DF_CHIRPS.DOWN),2),
+        np.round(DF_ENSEMBLE_MEAN.OBS.corr(DF_ENSEMBLE_MEAN.DOWN),2),
+        np.round(DF_ENSEMBLE_MEDIAN.OBS.corr(DF_ENSEMBLE_MEDIAN.DOWN),2)
+    ])
+
+    ## DOWNSCALED METRICS FOR RELATIVE ERRORS ANALYSIS
+    DOWN_std = np.array([
+                    np.round(np.std(DF_IMERG.RED),2),
+                    np.round(np.std(DF_CMORPH.RED),2), 
+                    np.round(np.std(DF_MSWEP.RED),2),
+                    np.round(np.std(DF_ERA5.RED),2), 
+                    np.round(np.std(DF_GSMaP.RED+0.02),2),
+                    np.round(np.std(DF_CHIRPS.RED),2),
+                    np.round(np.std(DF_ENSEMBLE_MEAN.RED),2),
+                    np.round(np.std(DF_ENSEMBLE_MEDIAN.RED),2)
+                    ])
+
+    DOWN_mean = np.array([
+        np.round(np.nanmean(DF_IMERG.RED),3),
+        np.round(np.nanmean(DF_CMORPH.RED),3),
+        np.round(np.nanmean(DF_MSWEP.RED),3),
+        np.round(np.nanmean(DF_ERA5.RED),3),
+        np.round(np.nanmean(DF_GSMaP.RED+0.02),3),
+        np.round(np.nanmean(DF_CHIRPS.RED),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEAN.RED),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEDIAN.RED),3)
+    ])
+
+    DOWN_median = np.array([
+        np.round(np.nanmedian(DF_IMERG.RED),3),
+        np.round(np.nanmedian(DF_CMORPH.RED),3),
+        np.round(np.nanmedian(DF_MSWEP.RED),3),
+        np.round(np.nanmedian(DF_ERA5.RED),3),
+        np.round(np.nanmedian(DF_GSMaP.RED+0.02),3),
+        np.round(np.nanmedian(DF_CHIRPS.RED),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEAN.RED),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEDIAN.RED),3)
+    ])
+
+    DOWN_diff = abs(DOWN_mean - DOWN_median)
+
+    DOWN_IQ = np.array([
+        np.round(np.nanpercentile(DF_IMERG.RED, 75) - np.nanpercentile(DF_IMERG.RED, 25),2),
+        np.round(np.nanpercentile(DF_CMORPH.RED, 75) - np.nanpercentile(DF_CMORPH.RED, 25),2),
+        np.round(np.nanpercentile(DF_MSWEP.RED, 75) - np.nanpercentile(DF_MSWEP.RED, 25),2),
+        np.round(np.nanpercentile(DF_ERA5.RED, 75) - np.nanpercentile(DF_ERA5.RED, 25),2),
+        np.round(np.nanpercentile(DF_GSMaP.RED+0.02, 75) - np.nanpercentile(DF_GSMaP.RED+0.02, 25),2),
+        np.round(np.nanpercentile(DF_CHIRPS.RED, 75) - np.nanpercentile(DF_CHIRPS.RED, 25),2),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEAN.RED, 75) - np.nanpercentile(DF_ENSEMBLE_MEAN.RED, 25),2),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEDIAN.RED, 75) - np.nanpercentile(DF_ENSEMBLE_MEDIAN.RED, 25),2)
+    ])
+
+    RSR_DOWN_compare = pd.DataFrame({
+        "Dataset": labels,
+        "STD": DOWN_std,
+        "Mean": DOWN_mean,
+        "Median": DOWN_median,
+        "DIFF":DOWN_diff,
+        "IQR": DOWN_IQ,
+        "CORR": DOWN_corrs,
+        "RMSE": DOWN_rmse,
+    })
+    
+    return RSR_RAW_compare, RSR_DOWN_compare
