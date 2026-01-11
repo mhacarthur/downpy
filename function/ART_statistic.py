@@ -184,6 +184,84 @@ def DF_elevation(DF):
     
     return DF_ALL, means
 
+def get_DF_weibull(product, dir_base):
+
+    hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+    data = pd.HDFStore(hdf5_file, mode='r')
+
+    keys = data.keys()
+    all_keys = data.keys()
+    keys_WEIBULL = [k for k in all_keys if k.endswith("/WEIBULL")]
+    keys_INFO = [k for k in keys if k.endswith('/INFO')]
+
+    list_remove = [
+                'IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
+                'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
+                'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
+                'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
+                'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
+                'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv',
+                'IT-230_1200_FTS_1440_QCv4.csv'
+                ]
+
+    stations = []
+    lats, lons, elevs = [], [], []
+    Nobs, Cobs, Wobs = [], [], []
+    Nraw, Craw, Wraw = [], [], []
+    Ndown, Cdown, Wdown = [], [], []
+    for nn in range(len(keys_INFO)):
+            station = keys_INFO[nn].split('/')[2]
+            
+            if station in list_remove:
+                continue
+            else:
+                lat = data[keys_INFO[nn]]['lat_obs'].values[0]
+                lon = data[keys_INFO[nn]]['lon_obs'].values[0]
+                elev = data[keys_INFO[nn]]['elev_obs'].values[0]
+                Nobs_ = data[keys_WEIBULL[nn]]['N_obs'].values[0]
+                Cobs_ = data[keys_WEIBULL[nn]]['C_obs'].values[0]
+                Wobs_ = data[keys_WEIBULL[nn]]['W_obs'].values[0]
+                Nraw_ = data[keys_WEIBULL[nn]]['N_raw'].values[0]
+                Craw_ = data[keys_WEIBULL[nn]]['C_raw'].values[0]
+                Wraw_ = data[keys_WEIBULL[nn]]['W_raw'].values[0]
+                Ndown_ = data[keys_WEIBULL[nn]]['N_down'].values[0]
+                Cdown_ = data[keys_WEIBULL[nn]]['C_down'].values[0]
+                Wdown_ = data[keys_WEIBULL[nn]]['W_down'].values[0]
+                
+                stations.append(station)
+                lats.append(lat)
+                lons.append(lon)
+                elevs.append(elev)
+                Nobs.append(Nobs_)
+                Cobs.append(Cobs_)
+                Wobs.append(Wobs_)
+                Nraw.append(Nraw_)
+                Craw.append(Craw_)
+                Wraw.append(Wraw_)
+                Ndown.append(Ndown_)
+                Cdown.append(Cdown_)
+                Wdown.append(Wdown_)
+
+    DF_FINAL = pd.DataFrame({
+            'station': stations,
+            'lat': lats,
+            'lon': lons,
+            'station': stations,
+            'lat': lats,
+            'lon': lons,
+            'elev': elevs,
+            'N_obs': Nobs,
+            'C_obs': Cobs,
+            'W_obs': Wobs,
+            'N_raw': Nraw,
+            'C_raw': Craw,
+            'W_raw': Wraw,
+            'N_down': Ndown,
+            'C_down': Cdown,
+            'W_down': Wdown})
+
+    return DF_FINAL
+
 def elevation_kmeans_robusto(DF_input):
     """
     Versión robusta con verificación completa
