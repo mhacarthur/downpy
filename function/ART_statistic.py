@@ -434,3 +434,49 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
     })
     
     return RSR_RAW_compare, RSR_DOWN_compare
+
+import numpy as np
+from scipy.stats import linregress
+
+def bias_correction_linear_regression(OBS, MOD, coeffs=None):
+    """
+    Bias correction using linear regression:
+        OBS = a + b * MOD
+
+    Parameters
+    ----------
+    OBS : array-like
+        Observed data
+    MOD : array-like
+        Modeled data
+    coeffs : tuple (a, b), optional
+        Pre-computed regression coefficients (intercept, slope).
+        If None, coefficients are estimated from OBS and MOD.
+
+    Returns
+    -------
+    MOD_corr : ndarray
+        Bias-corrected modeled data
+    coeffs : tuple
+        (intercept, slope)
+    """
+
+    OBS = np.asarray(OBS)
+    MOD = np.asarray(MOD)
+
+    # Mask valid data
+    mask = (~np.isnan(OBS)) & (~np.isnan(MOD))
+
+    if np.sum(mask) < 2:
+        raise ValueError("Not enough valid data points for regression.")
+
+    # Estimate regression coefficients if not provided
+    if coeffs is None:
+        slope, intercept, r, p, std = linregress(MOD[mask], OBS[mask])
+    else:
+        intercept, slope = coeffs
+
+    # Apply correction
+    MOD_corr = intercept + slope * MOD
+
+    return MOD_corr, (intercept, slope)
