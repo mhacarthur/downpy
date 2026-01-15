@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.stats as stats
 from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
+from scipy.stats import linregress
 from sklearn.linear_model import LinearRegression
 
 # Root-Mean-Square Deviation (RMSD)
@@ -97,7 +98,7 @@ def extract_all_quantiles(product):
     
     return RE_raw, RE_down
 
-def get_relative_error(product, dir_base, val_max=1.1, corrected=False):
+def get_relative_error(product, dir_base, val_max=1.1, corrected=False,corr_method=None):
     # The list bellow is the rain gauges with suspect data
     list_remove = [
             'IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
@@ -110,8 +111,11 @@ def get_relative_error(product, dir_base, val_max=1.1, corrected=False):
             ]
 
     if corrected == True:
-        print(f"Loading {product} corrected statistics...")
-        hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}_corrected.h5')
+        if corr_method is not None:
+            print(f"Loading {product} corrected statistics...")
+            hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}_corrected_{corr_method}.h5')
+        else:
+            raise ValueError("corr_method must be specified between 'QQc' or 'LRC' when corrected=True")
     else:
         hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
     data = pd.HDFStore(hdf5_file, mode='r')
@@ -513,48 +517,32 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
     
     return RSR_RAW_compare, RSR_DOWN_compare
 
-import numpy as np
-from scipy.stats import linregress
-
 def bias_correction_linear_regression(OBS, MOD, coeffs=None):
-    """
-    Bias correction using linear regression:
-        OBS = a + b * MOD
-
-    Parameters
-    ----------
-    OBS : array-like
-        Observed data
-    MOD : array-like
-        Modeled data
-    coeffs : tuple (a, b), optional
-        Pre-computed regression coefficients (intercept, slope).
-        If None, coefficients are estimated from OBS and MOD.
-
-    Returns
-    -------
-    MOD_corr : ndarray
-        Bias-corrected modeled data
-    coeffs : tuple
-        (intercept, slope)
-    """
 
     OBS = np.asarray(OBS)
     MOD = np.asarray(MOD)
 
-    # Mask valid data
     mask = (~np.isnan(OBS)) & (~np.isnan(MOD))
 
-    if np.sum(mask) < 2:
-        raise ValueError("Not enough valid data points for regression.")
-
-    # Estimate regression coefficients if not provided
     if coeffs is None:
         slope, intercept, r, p, std = linregress(MOD[mask], OBS[mask])
     else:
         intercept, slope = coeffs
 
-    # Apply correction
     MOD_corr = intercept + slope * MOD
 
-    return MOD_corr, (intercept, slope)
+    return slope, intercept
+
+def LinearRegression_correction(product, dir_base):
+    dir_base = os.path.join('/','media','arturo','T9','Data','Italy')
+    DF = get_DF_weibull(product, dir_base)
+
+    NYs_param = bias_correction_linear_regression(DF.N_obs.values, DF.N_raw.values)
+    CYs_param = bias_correction_linear_regression(DF.C_obs.values, DF.C_raw.values)
+    WYs_param = bias_correction_linear_regression(DF.W_obs.values, DF.W_raw.values)
+
+    NYd_param = bias_correction_linear_regression(DF.N_obs.values, DF.N_down.values)
+    CYd_param = bias_correction_linear_regression(DF.C_obs.values, DF.C_down.values)
+    WYd_param = bias_correction_linear_regression(DF.W_obs.values, DF.W_down.values)
+
+    return NYs_param, CYs_param, WYs_param, NYd_param, CYd_param, WYd_param
