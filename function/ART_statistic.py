@@ -111,9 +111,9 @@ def get_relative_error(product, dir_base, val_max=1.1, corrected=False,corr_meth
             ]
 
     if corrected == True:
-        if corr_method is not None:
+        if corr_method == 'QQc':
             print(f"Loading {product} corrected statistics...")
-            hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}_corrected_{corr_method}.h5')
+            hdf5_file = os.path.join(dir_base,'statistics','QQc',f'statistics_obs_{product}_corrected_{corr_method}.h5')
         else:
             raise ValueError("corr_method must be specified between 'QQc' or 'LRC' when corrected=True")
     else:
