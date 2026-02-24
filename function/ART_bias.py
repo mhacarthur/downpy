@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 def linear_bc_through_origin(obs, sat, sat_all):
     
     # DataFrame para limpiar NaN e inf
