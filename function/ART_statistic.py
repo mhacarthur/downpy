@@ -37,6 +37,14 @@ def calculate_mare(obs, mod, eps=1e-6):
     re = (mod - obs) / (obs + eps)
     return np.nanmean(np.abs(re), axis=0)
 
+def calculate_rmse(obs, mod):
+    """
+    Root Mean Squared Error (RMSE)
+
+    obs, mod : arrays (nt, ny, nx) o compatibles
+    """
+    mse = (mod - obs) ** 2
+    return np.sqrt(np.nanmean(mse, axis=0))
 
 def CDFt(obs, sat):
     """
@@ -364,6 +372,17 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
                     np.round(calculate_mare(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.RAW),3)
                     ])
 
+    RAW_rmse = np.array([
+                    np.round(calculate_rmse(DF_IMERG.OBS, DF_IMERG.RAW),3),
+                    np.round(calculate_rmse(DF_CMORPH.OBS, DF_CMORPH.RAW),3),
+                    np.round(calculate_rmse(DF_MSWEP.OBS, DF_MSWEP.RAW),3),
+                    np.round(calculate_rmse(DF_ERA5.OBS, DF_ERA5.RAW),3),
+                    np.round(calculate_rmse(DF_GSMaP.OBS, DF_GSMaP.RAW),3),
+                    np.round(calculate_rmse(DF_CHIRPS.OBS, DF_CHIRPS.RAW),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.RAW),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.RAW),3)
+                    ])
+
     RAW_corrs = np.array([
         np.round(DF_IMERG.OBS.corr(DF_IMERG.RAW),3),
         np.round(DF_CMORPH.OBS.corr(DF_CMORPH.RAW),3),
@@ -431,6 +450,7 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
         "IQR": RAW_IQ,
         "CORR": RAW_corrs,
         "MARE": RAW_mare,
+        "RMSE": RAW_rmse,
     })
 
     # ==================================================================================================================
@@ -444,6 +464,17 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
                     np.round(calculate_mare(DF_CHIRPS.OBS, DF_CHIRPS.DOWN),3),
                     np.round(calculate_mare(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.DOWN),3),
                     np.round(calculate_mare(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.DOWN),3)
+                    ])
+
+    DOWN_rmse = np.array([
+                    np.round(calculate_rmse(DF_IMERG.OBS, DF_IMERG.DOWN),3),
+                    np.round(calculate_rmse(DF_CMORPH.OBS, DF_CMORPH.DOWN),3),
+                    np.round(calculate_rmse(DF_MSWEP.OBS, DF_MSWEP.DOWN),3),
+                    np.round(calculate_rmse(DF_ERA5.OBS, DF_ERA5.DOWN),3),
+                    np.round(calculate_rmse(DF_GSMaP.OBS, DF_GSMaP.DOWN),3),
+                    np.round(calculate_rmse(DF_CHIRPS.OBS, DF_CHIRPS.DOWN),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.DOWN),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.DOWN),3)
                     ])
 
     DOWN_corrs = np.array([
@@ -513,6 +544,7 @@ def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHI
         "IQR": DOWN_IQ,
         "CORR": DOWN_corrs,
         "MARE": DOWN_mare,
+        "RMSE": DOWN_rmse,
     })
     
     return RSR_RAW_compare, RSR_DOWN_compare
