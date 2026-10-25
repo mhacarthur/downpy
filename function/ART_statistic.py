@@ -93,7 +93,8 @@ def get_relative_error(product, dir_base, val_max=1.1):
                    'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
                    'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
                    'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
-                   'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv']
+                   'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv',
+                   'IT-780_2380_FTS_1440_QCv4.csv', 'IT-230_1200_FTS_1440_QCv4.csv', 'IT-820_751_FTS_1440_QCv4.csv']
 
     hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
     data = pd.HDFStore(hdf5_file, mode='r')
