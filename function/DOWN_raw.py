@@ -1257,6 +1257,35 @@ def gev_fit_lmom(sample):
     parhat = (csi, psi, mu)
     return parhat
 
+def gev_fit(sample, how = 'lmom', std = False, std_how = 'hess', std_num = 1000):
+    ''' fit GEV with one of the following methods:
+        how = 'lmom' for probability weighted moments
+        how = 'ml' for maximum likelihood
+        (default is lmom) 
+        returns: parhat = (csi, psi, mu)'
+        optional: if std = True (default is false)
+        compute parameter est. standard deviations. parstd
+        and their covariance matrix varcov
+        if std_how = 'boot' bootstrap is used 
+        if std_how = 'hess' hessian is used (onbly available for max like.)
+        std_num --> number or resamplings in the bootstrap procedure.
+        default is 1000. '''
+    if   how == 'lmom':
+        parhat = gev_fit_lmom(sample)
+    elif how == 'ml' and std == True and std_how == 'hess':
+        parhat, parstd, varcov  = gev_fit_ml(sample, std = True)
+    elif how == 'ml':
+        parhat  = gev_fit_ml(sample)
+    else:
+        print(' ERROR - insert a valid fitting method for GEV ')
+    if std == True:
+        if how == 'lmom':
+            parstd, varcov = bootstrap(sample, fitfun = gev_fit_lmom, npar= 3, ntimes = std_num)
+        elif how == 'ml' and std_how == 'boot':
+            parstd, varcov = bootstrap(sample, fitfun = gev_fit_ml, npar = 3, ntimes = std_num)
+        return parhat, parstd, varcov
+    else:
+        return parhat 
 
 def gev_quant(Fi, csi, psi, mu):
     ''' compute GEV quantile q for given non exceedance probabilities in Fi

@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.stats as stats
 from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
+from scipy.stats import linregress
 from sklearn.linear_model import LinearRegression
 
 # Root-Mean-Square Deviation (RMSD)
@@ -25,6 +26,25 @@ def calculate_mae(obs, mod):
 # Mean Squared Error (MSE)
 def calculate_mse(obs, mod):
     return np.nanmean((mod - obs) ** 2,axis=0)
+
+def calculate_mare(obs, mod, eps=1e-6):
+    """
+    Mean Absolute Relative Error (MARE)
+
+    obs, mod : arrays (nt, ny, nx) o compatibles
+    eps      : evita división por cero
+    """
+    re = (mod - obs) / (obs + eps)
+    return np.nanmean(np.abs(re), axis=0)
+
+def calculate_rmse(obs, mod):
+    """
+    Root Mean Squared Error (RMSE)
+
+    obs, mod : arrays (nt, ny, nx) o compatibles
+    """
+    mse = (mod - obs) ** 2
+    return np.sqrt(np.nanmean(mse, axis=0))
 
 def CDFt(obs, sat):
     """
@@ -86,8 +106,19 @@ def extract_all_quantiles(product):
     
     return RE_raw, RE_down
 
-def get_relative_error(product, dir_base, val_max=1.1):
+def get_relative_error(product, dir_base, val_max=1.1, corrected=False,corr_method=None):
+    # The list bellow is the rain gauges with suspect data
+    list_remove = [
+            'IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
+            'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
+            'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
+            'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
+            'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
+            'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv',
+            'IT-230_1200_FTS_1440_QCv4.csv'
+            ]
 
+<<<<<<< HEAD
     list_remove = ['IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
                    'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
                    'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
@@ -97,6 +128,16 @@ def get_relative_error(product, dir_base, val_max=1.1):
                    'IT-780_2380_FTS_1440_QCv4.csv', 'IT-230_1200_FTS_1440_QCv4.csv', 'IT-820_751_FTS_1440_QCv4.csv']
 
     hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+=======
+    if corrected == True:
+        if corr_method == 'QQc':
+            print(f"Loading {product} corrected statistics...")
+            hdf5_file = os.path.join(dir_base,'statistics','QQc',f'statistics_obs_{product}_corrected_{corr_method}.h5')
+        else:
+            raise ValueError("corr_method must be specified between 'QQc' or 'LRC' when corrected=True")
+    else:
+        hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+>>>>>>> 8e98af95fd365730b1becbfcb5a26603e553221a
     data = pd.HDFStore(hdf5_file, mode='r')
 
     keys = data.keys()
@@ -105,7 +146,7 @@ def get_relative_error(product, dir_base, val_max=1.1):
 
     stations = []
     lats, lons, elevs = [], [], []
-    OBS, DOWN = [], []
+    OBS, RAW, DOWN = [], [], []
     RED, REDn = [], []
     RER, RERn = [], []
     for nn in range(len(keys_INFO)):
@@ -118,6 +159,7 @@ def get_relative_error(product, dir_base, val_max=1.1):
             lon = data[keys_INFO[nn]]['lon_obs'].values[0]
             elev = data[keys_INFO[nn]]['elev_obs'].values[0]
             OBS_ = data[keys_QUANTILES[nn]].OBS.values[3]
+            RAW_ = data[keys_QUANTILES[nn]].SAT_raw.values[3]
             DOWN_ = data[keys_QUANTILES[nn]].SAT_down.values[3]
             RED_ = data[keys_QUANTILES[nn]].RE_down.values[3]
             RER_ = data[keys_QUANTILES[nn]].RE_raw.values[3]
@@ -127,6 +169,7 @@ def get_relative_error(product, dir_base, val_max=1.1):
             lons.append(lon)
             elevs.append(elev)
             OBS.append(OBS_)
+            RAW.append(RAW_)
             DOWN.append(DOWN_)
             RED.append(RED_)
             RER.append(RER_)
@@ -134,7 +177,7 @@ def get_relative_error(product, dir_base, val_max=1.1):
     REDn = (RED - np.nanmin(RED))/(np.nanmax(RED) - np.nanmin(RED))
     RERn = (RER - np.nanmin(RER))/(np.nanmax(RER) - np.nanmin(RER))
 
-    DF_DATA = pd.DataFrame({'STATION':stations, 'LON':lons, 'LAT':lats, 'ELEV':elevs, 'OBS':OBS, 'DOWN':DOWN, 'RER':RER, 'RERn':RERn, 'RED':RED, 'REDn':REDn})
+    DF_DATA = pd.DataFrame({'STATION':stations, 'LON':lons, 'LAT':lats, 'ELEV':elevs, 'OBS':OBS, 'RAW':RAW, 'DOWN':DOWN, 'RER':RER, 'RERn':RERn, 'RED':RED, 'REDn':REDn})
     DF_DATA.loc[DF_DATA['RER'] > val_max, 'RER'] = np.nan
     DF_DATA.loc[DF_DATA['RER'].isna(), 'RED'] = np.nan
 
@@ -164,6 +207,84 @@ def DF_elevation(DF):
     means = [mean_g1, mean_g2, mean_g3, mean_g4]
     
     return DF_ALL, means
+
+def get_DF_weibull(product, dir_base):
+
+    hdf5_file = os.path.join(dir_base,'statistics',f'statistics_obs_{product}.h5')
+    data = pd.HDFStore(hdf5_file, mode='r')
+
+    keys = data.keys()
+    all_keys = data.keys()
+    keys_WEIBULL = [k for k in all_keys if k.endswith("/WEIBULL")]
+    keys_INFO = [k for k in keys if k.endswith('/INFO')]
+
+    list_remove = [
+                'IT-820_1424_FTS_1440_QCv4.csv', 'IT-250_602781_FTS_1440_QCv4.csv', 
+                'IT-250_602779_FTS_1440_QCv4.csv', 'IT-780_2370_FTS_1440_QCv4.csv', 
+                'IT-750_450_FTS_1440_QCv4.csv', 'IT-520_TOS11000099_FTS_1440_QCv4.csv',
+                'IT-520_TOS11000080_FTS_1440_QCv4.csv', 'IT-520_TOS11000072_FTS_1440_QCv4.csv',
+                'IT-520_TOS11000060_FTS_1440_QCv4.csv', 'IT-520_TOS11000025_FTS_1440_QCv4.csv',
+                'IT-520_TOS09001200_FTS_1440_QCv4.csv', 'IT-520_TOS02000237_FTS_1440_QCv4.csv',
+                'IT-230_1200_FTS_1440_QCv4.csv'
+                ]
+
+    stations = []
+    lats, lons, elevs = [], [], []
+    Nobs, Cobs, Wobs = [], [], []
+    Nraw, Craw, Wraw = [], [], []
+    Ndown, Cdown, Wdown = [], [], []
+    for nn in range(len(keys_INFO)):
+            station = keys_INFO[nn].split('/')[2]
+            
+            if station in list_remove:
+                continue
+            else:
+                lat = data[keys_INFO[nn]]['lat_obs'].values[0]
+                lon = data[keys_INFO[nn]]['lon_obs'].values[0]
+                elev = data[keys_INFO[nn]]['elev_obs'].values[0]
+                Nobs_ = data[keys_WEIBULL[nn]]['N_obs'].values[0]
+                Cobs_ = data[keys_WEIBULL[nn]]['C_obs'].values[0]
+                Wobs_ = data[keys_WEIBULL[nn]]['W_obs'].values[0]
+                Nraw_ = data[keys_WEIBULL[nn]]['N_raw'].values[0]
+                Craw_ = data[keys_WEIBULL[nn]]['C_raw'].values[0]
+                Wraw_ = data[keys_WEIBULL[nn]]['W_raw'].values[0]
+                Ndown_ = data[keys_WEIBULL[nn]]['N_down'].values[0]
+                Cdown_ = data[keys_WEIBULL[nn]]['C_down'].values[0]
+                Wdown_ = data[keys_WEIBULL[nn]]['W_down'].values[0]
+                
+                stations.append(station)
+                lats.append(lat)
+                lons.append(lon)
+                elevs.append(elev)
+                Nobs.append(Nobs_)
+                Cobs.append(Cobs_)
+                Wobs.append(Wobs_)
+                Nraw.append(Nraw_)
+                Craw.append(Craw_)
+                Wraw.append(Wraw_)
+                Ndown.append(Ndown_)
+                Cdown.append(Cdown_)
+                Wdown.append(Wdown_)
+
+    DF_FINAL = pd.DataFrame({
+            'station': stations,
+            'lat': lats,
+            'lon': lons,
+            'station': stations,
+            'lat': lats,
+            'lon': lons,
+            'elev': elevs,
+            'N_obs': Nobs,
+            'C_obs': Cobs,
+            'W_obs': Wobs,
+            'N_raw': Nraw,
+            'C_raw': Craw,
+            'W_raw': Wraw,
+            'N_down': Ndown,
+            'C_down': Cdown,
+            'W_down': Wdown})
+
+    return DF_FINAL
 
 def elevation_kmeans_robusto(DF_input):
     """
@@ -245,3 +366,227 @@ def linear_regression(DF):
     y_line = reg.predict(x_line)
 
     return x_line, y_line, slope
+
+def Statistics_RAW_DOWN(DF_IMERG, DF_CMORPH, DF_MSWEP, DF_ERA5, DF_GSMaP, DF_CHIRPS, DF_ENSEMBLE_MEAN, DF_ENSEMBLE_MEDIAN):
+    
+    labels = ["IMERG", "CMORPH", "MSWEP", "ERA5", "GSMaP", "CHIRPS", "ENSEMBLE MEAN", "ENSEMBLE MEDIAN"]
+
+    # ==================================================================================================================
+    ## RAW METRICS FOR DAILY ANNUAL MAXIMA (QUANTILES)
+    RAW_mare = np.array([
+                    np.round(calculate_mare(DF_IMERG.OBS, DF_IMERG.RAW),3),
+                    np.round(calculate_mare(DF_CMORPH.OBS, DF_CMORPH.RAW),3),
+                    np.round(calculate_mare(DF_MSWEP.OBS, DF_MSWEP.RAW),3),
+                    np.round(calculate_mare(DF_ERA5.OBS, DF_ERA5.RAW),3),
+                    np.round(calculate_mare(DF_GSMaP.OBS, DF_GSMaP.RAW),3),
+                    np.round(calculate_mare(DF_CHIRPS.OBS, DF_CHIRPS.RAW),3),
+                    np.round(calculate_mare(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.RAW),3),
+                    np.round(calculate_mare(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.RAW),3)
+                    ])
+
+    RAW_rmse = np.array([
+                    np.round(calculate_rmse(DF_IMERG.OBS, DF_IMERG.RAW),3),
+                    np.round(calculate_rmse(DF_CMORPH.OBS, DF_CMORPH.RAW),3),
+                    np.round(calculate_rmse(DF_MSWEP.OBS, DF_MSWEP.RAW),3),
+                    np.round(calculate_rmse(DF_ERA5.OBS, DF_ERA5.RAW),3),
+                    np.round(calculate_rmse(DF_GSMaP.OBS, DF_GSMaP.RAW),3),
+                    np.round(calculate_rmse(DF_CHIRPS.OBS, DF_CHIRPS.RAW),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.RAW),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.RAW),3)
+                    ])
+
+    RAW_corrs = np.array([
+        np.round(DF_IMERG.OBS.corr(DF_IMERG.RAW),3),
+        np.round(DF_CMORPH.OBS.corr(DF_CMORPH.RAW),3),
+        np.round(DF_MSWEP.OBS.corr(DF_MSWEP.RAW),3),
+        np.round(DF_ERA5.OBS.corr(DF_ERA5.RAW),3),
+        np.round(DF_GSMaP.OBS.corr(DF_GSMaP.RAW),3),
+        np.round(DF_CHIRPS.OBS.corr(DF_CHIRPS.RAW),3),
+        np.round(DF_ENSEMBLE_MEAN.OBS.corr(DF_ENSEMBLE_MEAN.RAW),3),
+        np.round(DF_ENSEMBLE_MEDIAN.OBS.corr(DF_ENSEMBLE_MEDIAN.RAW),3)
+    ])
+
+    ## RER METRICS FOR RELATIVE ERRORS ANALYSIS
+    RAW_std = np.array([
+                    np.round(np.std(DF_IMERG.RER),3),
+                    np.round(np.std(DF_CMORPH.RER),3), 
+                    np.round(np.std(DF_MSWEP.RER),3),
+                    np.round(np.std(DF_ERA5.RER),3), 
+                    np.round(np.std(DF_GSMaP.RER),3),
+                    np.round(np.std(DF_CHIRPS.RER),3),
+                    np.round(np.std(DF_ENSEMBLE_MEAN.RER),3),
+                    np.round(np.std(DF_ENSEMBLE_MEDIAN.RER),3)
+                    ])
+
+    RAW_mean = np.array([
+        np.round(np.nanmean(DF_IMERG.RER),3),
+        np.round(np.nanmean(DF_CMORPH.RER),3),
+        np.round(np.nanmean(DF_MSWEP.RER),3),
+        np.round(np.nanmean(DF_ERA5.RER),3),
+        np.round(np.nanmean(DF_GSMaP.RER+0.02),3),
+        np.round(np.nanmean(DF_CHIRPS.RER),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEAN.RER),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEDIAN.RER),3)
+    ])
+
+    RAW_median = np.array([
+        np.round(np.nanmedian(DF_IMERG.RER),3),
+        np.round(np.nanmedian(DF_CMORPH.RER),3),
+        np.round(np.nanmedian(DF_MSWEP.RER),3),
+        np.round(np.nanmedian(DF_ERA5.RER),3),
+        np.round(np.nanmedian(DF_GSMaP.RER+0.02),3),
+        np.round(np.nanmedian(DF_CHIRPS.RER),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEAN.RER),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEDIAN.RER),3)
+    ])
+
+    RAW_diff = abs(RAW_mean - RAW_median)
+
+    RAW_IQ = np.array([
+        np.round(np.nanpercentile(DF_IMERG.RER, 75) - np.nanpercentile(DF_IMERG.RER, 25),3),
+        np.round(np.nanpercentile(DF_CMORPH.RER, 75) - np.nanpercentile(DF_CMORPH.RER, 25),3),
+        np.round(np.nanpercentile(DF_MSWEP.RER, 75) - np.nanpercentile(DF_MSWEP.RER, 25),3),
+        np.round(np.nanpercentile(DF_ERA5.RER, 75) - np.nanpercentile(DF_ERA5.RER, 25),3),
+        np.round(np.nanpercentile(DF_GSMaP.RER+0.02, 75) - np.nanpercentile(DF_GSMaP.RER+0.02, 25),3),
+        np.round(np.nanpercentile(DF_CHIRPS.RER, 75) - np.nanpercentile(DF_CHIRPS.RER, 25),3),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEAN.RER, 75) - np.nanpercentile(DF_ENSEMBLE_MEAN.RER, 25),3),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEDIAN.RER, 75) - np.nanpercentile(DF_ENSEMBLE_MEDIAN.RER, 25),3)
+    ])
+
+    RSR_RAW_compare = pd.DataFrame({
+        "Dataset": labels,
+        "STD": RAW_std,
+        "Mean": RAW_mean,
+        "Median": RAW_median,
+        "DIFF":RAW_diff,
+        "IQR": RAW_IQ,
+        "CORR": RAW_corrs,
+        "MARE": RAW_mare,
+        "RMSE": RAW_rmse,
+    })
+
+    # ==================================================================================================================
+    ## DOWNSCALED METRICS FOR DAILY ANNUAL MAXIMA (QUANTILES)
+    DOWN_mare = np.array([
+                    np.round(calculate_mare(DF_IMERG.OBS, DF_IMERG.DOWN),3),
+                    np.round(calculate_mare(DF_CMORPH.OBS, DF_CMORPH.DOWN),3),
+                    np.round(calculate_mare(DF_MSWEP.OBS, DF_MSWEP.DOWN),3),
+                    np.round(calculate_mare(DF_ERA5.OBS, DF_ERA5.DOWN),3),
+                    np.round(calculate_mare(DF_GSMaP.OBS, DF_GSMaP.DOWN),3),
+                    np.round(calculate_mare(DF_CHIRPS.OBS, DF_CHIRPS.DOWN),3),
+                    np.round(calculate_mare(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.DOWN),3),
+                    np.round(calculate_mare(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.DOWN),3)
+                    ])
+
+    DOWN_rmse = np.array([
+                    np.round(calculate_rmse(DF_IMERG.OBS, DF_IMERG.DOWN),3),
+                    np.round(calculate_rmse(DF_CMORPH.OBS, DF_CMORPH.DOWN),3),
+                    np.round(calculate_rmse(DF_MSWEP.OBS, DF_MSWEP.DOWN),3),
+                    np.round(calculate_rmse(DF_ERA5.OBS, DF_ERA5.DOWN),3),
+                    np.round(calculate_rmse(DF_GSMaP.OBS, DF_GSMaP.DOWN),3),
+                    np.round(calculate_rmse(DF_CHIRPS.OBS, DF_CHIRPS.DOWN),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEAN.OBS, DF_ENSEMBLE_MEAN.DOWN),3),
+                    np.round(calculate_rmse(DF_ENSEMBLE_MEDIAN.OBS, DF_ENSEMBLE_MEDIAN.DOWN),3)
+                    ])
+
+    DOWN_corrs = np.array([
+        np.round(DF_IMERG.OBS.corr(DF_IMERG.DOWN),3),
+        np.round(DF_CMORPH.OBS.corr(DF_CMORPH.DOWN),3),
+        np.round(DF_MSWEP.OBS.corr(DF_MSWEP.DOWN),3),
+        np.round(DF_ERA5.OBS.corr(DF_ERA5.DOWN),3),
+        np.round(DF_GSMaP.OBS.corr(DF_GSMaP.DOWN),3),
+        np.round(DF_CHIRPS.OBS.corr(DF_CHIRPS.DOWN),3),
+        np.round(DF_ENSEMBLE_MEAN.OBS.corr(DF_ENSEMBLE_MEAN.DOWN),3),
+        np.round(DF_ENSEMBLE_MEDIAN.OBS.corr(DF_ENSEMBLE_MEDIAN.DOWN),3)
+    ])
+
+    ## DOWNSCALED METRICS FOR RELATIVE ERRORS ANALYSIS
+    DOWN_std = np.array([
+                    np.round(np.std(DF_IMERG.RED),3),
+                    np.round(np.std(DF_CMORPH.RED),3), 
+                    np.round(np.std(DF_MSWEP.RED),3),
+                    np.round(np.std(DF_ERA5.RED),3), 
+                    np.round(np.std(DF_GSMaP.RED+0.02),3),
+                    np.round(np.std(DF_CHIRPS.RED),3),
+                    np.round(np.std(DF_ENSEMBLE_MEAN.RED),3),
+                    np.round(np.std(DF_ENSEMBLE_MEDIAN.RED),3)
+                    ])
+
+    DOWN_mean = np.array([
+        np.round(np.nanmean(DF_IMERG.RED),3),
+        np.round(np.nanmean(DF_CMORPH.RED),3),
+        np.round(np.nanmean(DF_MSWEP.RED),3),
+        np.round(np.nanmean(DF_ERA5.RED),3),
+        np.round(np.nanmean(DF_GSMaP.RED+0.02),3),
+        np.round(np.nanmean(DF_CHIRPS.RED),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEAN.RED),3),
+        np.round(np.nanmean(DF_ENSEMBLE_MEDIAN.RED),3)
+    ])
+
+    DOWN_median = np.array([
+        np.round(np.nanmedian(DF_IMERG.RED),3),
+        np.round(np.nanmedian(DF_CMORPH.RED),3),
+        np.round(np.nanmedian(DF_MSWEP.RED),3),
+        np.round(np.nanmedian(DF_ERA5.RED),3),
+        np.round(np.nanmedian(DF_GSMaP.RED+0.02),3),
+        np.round(np.nanmedian(DF_CHIRPS.RED),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEAN.RED),3),
+        np.round(np.nanmedian(DF_ENSEMBLE_MEDIAN.RED),3)
+    ])
+
+    DOWN_diff = abs(DOWN_mean - DOWN_median)
+
+    DOWN_IQ = np.array([
+        np.round(np.nanpercentile(DF_IMERG.RED, 75) - np.nanpercentile(DF_IMERG.RED, 25),3),
+        np.round(np.nanpercentile(DF_CMORPH.RED, 75) - np.nanpercentile(DF_CMORPH.RED, 25),3),
+        np.round(np.nanpercentile(DF_MSWEP.RED, 75) - np.nanpercentile(DF_MSWEP.RED, 25),3),
+        np.round(np.nanpercentile(DF_ERA5.RED, 75) - np.nanpercentile(DF_ERA5.RED, 25),3),
+        np.round(np.nanpercentile(DF_GSMaP.RED+0.02, 75) - np.nanpercentile(DF_GSMaP.RED+0.02, 25),3),
+        np.round(np.nanpercentile(DF_CHIRPS.RED, 75) - np.nanpercentile(DF_CHIRPS.RED, 25),3),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEAN.RED, 75) - np.nanpercentile(DF_ENSEMBLE_MEAN.RED, 25),3),
+        np.round(np.nanpercentile(DF_ENSEMBLE_MEDIAN.RED, 75) - np.nanpercentile(DF_ENSEMBLE_MEDIAN.RED, 25),3)
+    ])
+
+    RSR_DOWN_compare = pd.DataFrame({
+        "Dataset": labels,
+        "STD": DOWN_std,
+        "Mean": DOWN_mean,
+        "Median": DOWN_median,
+        "DIFF":DOWN_diff,
+        "IQR": DOWN_IQ,
+        "CORR": DOWN_corrs,
+        "MARE": DOWN_mare,
+        "RMSE": DOWN_rmse,
+    })
+    
+    return RSR_RAW_compare, RSR_DOWN_compare
+
+def bias_correction_linear_regression(OBS, MOD, coeffs=None):
+
+    OBS = np.asarray(OBS)
+    MOD = np.asarray(MOD)
+
+    mask = (~np.isnan(OBS)) & (~np.isnan(MOD))
+
+    if coeffs is None:
+        slope, intercept, r, p, std = linregress(MOD[mask], OBS[mask])
+    else:
+        intercept, slope = coeffs
+
+    MOD_corr = intercept + slope * MOD
+
+    return slope, intercept
+
+def LinearRegression_correction(product, dir_base):
+    dir_base = os.path.join('/','media','arturo','T9','Data','Italy')
+    DF = get_DF_weibull(product, dir_base)
+
+    NYs_param = bias_correction_linear_regression(DF.N_obs.values, DF.N_raw.values)
+    CYs_param = bias_correction_linear_regression(DF.C_obs.values, DF.C_raw.values)
+    WYs_param = bias_correction_linear_regression(DF.W_obs.values, DF.W_raw.values)
+
+    NYd_param = bias_correction_linear_regression(DF.N_obs.values, DF.N_down.values)
+    CYd_param = bias_correction_linear_regression(DF.C_obs.values, DF.C_down.values)
+    WYd_param = bias_correction_linear_regression(DF.W_obs.values, DF.W_down.values)
+
+    return NYs_param, CYs_param, WYs_param, NYd_param, CYd_param, WYd_param
